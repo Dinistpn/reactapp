@@ -3,7 +3,8 @@ name: Deploy React App to GitHub Pages
 on:
   push:
     branches:
-      - main  # Runs automatically whenever you push to main
+      - main
+  workflow_dispatch:  # Enables manual run button in Actions tab
 
 permissions:
   contents: read
@@ -34,12 +35,12 @@ jobs:
       - name: Build React App
         run: npm run build
         env:
-          CI: false  # Prevents warnings from failing the build
+          CI: false
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './build'  # Points to Create React App's build directory
+          path: './build'
 
       - name: Deploy to GitHub Pages
         id: deployment
