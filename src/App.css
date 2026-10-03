@@ -1,3 +1,42 @@
-.container{
-  padding: 10px;
+/* App Wrapper */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header */
+.app-header {
+  background-color: #1e293b;
+  color: #ffffff;
+  padding: 1rem 0;
+}
+
+.header-inner,
+.content-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  width: 100%;
+}
+
+/* Flex grow pushes footer to bottom */
+.main-content {
+  flex: 1 0 auto;
+  padding: 2rem 0;
+}
+
+/* Responsive Grid layout for child components */
+.grid-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Footer */
+.app-footer {
+  background-color: #0f172a;
+  color: #94a3b8;
+  text-align: center;
+  padding: 1.5rem 0;
 }
