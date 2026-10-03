@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-// Define TypeScript interfaces for Task and AppState ...
+// Define TypeScript interfaces for Task and AppState ...er
 interface Task {
   id: number;
   text: string;
