@@ -54,16 +54,17 @@ class App extends Component<{}, AppState> {
   private sfxRef: React.RefObject<HTMLAudioElement>;
   private modalContainerRef: React.RefObject<HTMLDivElement>;
 
-  // Direct Raw URLs for sound files in the gh-pages branch
-  rawBranchUrl = 'https://dinistpn.github.io/reactapp';
+  // Base URL helper
+  baseUrl = process.env.PUBLIC_URL || '.';
 
-  // Gallery Images 1_img.jpg through 26_img.jpg pointing directly to img/ folder
+  // Gallery Images 1 through 26 using relative ./img/ paths
   galleryImages = Array.from({ length: 26 }, (_, index) => {
     const num = index + 1;
     return {
       id: num,
       title: `Image ${num}`,
-      src: `img/${num}_img.jpg`,
+      fileName: `${num}_img.jpg`,
+      src: `${this.baseUrl}/img/${num}_img.jpg`,
       alt: `Image ${num}`,
     };
   });
@@ -74,21 +75,21 @@ class App extends Component<{}, AppState> {
       id: 1,
       title: 'Track 1',
       artist: 'Repository Track',
-      src: `${this.rawBranchUrl}/sound/1.m4a`,
+      src: `${this.baseUrl}/sound/1.m4a`,
     },
     {
       id: 2,
       title: 'Track 2',
       artist: 'Repository Track',
-      src: `${this.rawBranchUrl}/sound/2.m4a`,
+      src: `${this.baseUrl}/sound/2.m4a`,
     },
   ];
 
   // Game SFX
   sfx = {
-    click: `${this.rawBranchUrl}/sound/mouseclick1.wav`,
-    preparing: `${this.rawBranchUrl}/sound/preparing-the-match.mp3`,
-    gameOver: `${this.rawBranchUrl}/sound/game-over.mp3`,
+    click: `${this.baseUrl}/sound/mouseclick1.wav`,
+    preparing: `${this.baseUrl}/sound/preparing-the-match.mp3`,
+    gameOver: `${this.baseUrl}/sound/game-over.mp3`,
   };
 
   constructor(props: {}) {
@@ -781,6 +782,13 @@ class App extends Component<{}, AppState> {
                           src={img.src}
                           className="card-img-top mh-100 mw-100 object-fit-cover"
                           alt={img.alt}
+                          onError={(e) => {
+                            // Fallback to relative ./img/ path if process.env.PUBLIC_URL fails
+                            const target = e.target as HTMLImageElement;
+                            if (!target.src.endsWith(`./img/${img.fileName}`)) {
+                              target.src = `./img/${img.fileName}`;
+                            }
+                          }}
                         />
                       </div>
                       <div className="card-body p-2 text-center bg-white">
@@ -834,6 +842,13 @@ class App extends Component<{}, AppState> {
                           alt={this.galleryImages[selectedImgIndex].alt}
                           onMouseDown={this.handleMouseDown}
                           onTouchStart={this.handleTouchStart}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            const fileName = this.galleryImages[selectedImgIndex].fileName;
+                            if (!target.src.endsWith(`./img/${fileName}`)) {
+                              target.src = `./img/${fileName}`;
+                            }
+                          }}
                           style={{
                             transform: `translate(${position.x}px, ${position.y}px) scale(${zoomLevel})`,
                             maxHeight: '100%',
