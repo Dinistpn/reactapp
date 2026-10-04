@@ -944,7 +944,7 @@ class App extends Component<{}, AppState> {
             <div className="card p-3 p-sm-4 shadow-sm">
               <h4 className="card-title mb-3">About This Application</h4>
               <p className="card-text text-muted">
-                This touch-friendly, fully responsive React application features dynamic tasks, interactive background music and game SFX, a 21-image gallery viewer with fullscreen mode, mouse & touch-drag panning, live clock, and Tic-Tac-Toe.
+                This touch-friendly, fully responsive React application features dynamic tasks, interactive background music and game SFX, a 26-image gallery viewer with fullscreen mode, mouse & touch-drag panning, live clock, and Tic-Tac-Toe.
               </p>
             </div>
           )}
