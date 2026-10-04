@@ -34,7 +34,7 @@ interface AppState {
   // Music Player State
   currentTrackIndex: number;
   isPlaying: boolean;
-  volume: number; // 0 to 1
+  volume: number;
 
   // Tic-Tac-Toe State
   board: (string | null)[];
@@ -47,66 +47,45 @@ interface AppState {
 class App extends Component<{}, AppState> {
   private timerID?: NodeJS.Timeout;
   private audioRef: React.RefObject<HTMLAudioElement>;
+  private sfxRef: React.RefObject<HTMLAudioElement>;
 
-  // Repository Local Images
+  // Images from https://github.com/Dinistpn/reactapp/tree/gh-pages/img
   galleryImages = [
+    { id: 1, title: 'Image 1', src: process.env.PUBLIC_URL + '/img/1.jpg', alt: 'Image 1' },
+    { id: 2, title: 'Image 2', src: process.env.PUBLIC_URL + '/img/2.jpg', alt: 'Image 2' },
+    { id: 3, title: 'Image 3', src: process.env.PUBLIC_URL + '/img/3.jpg', alt: 'Image 3' },
+    { id: 4, title: 'Image 4', src: process.env.PUBLIC_URL + '/img/4.jpg', alt: 'Image 4' },
+    { id: 5, title: 'Image 5', src: process.env.PUBLIC_URL + '/img/5.jpg', alt: 'Image 5' },
+    { id: 6, title: 'Image 6', src: process.env.PUBLIC_URL + '/img/6.jpg', alt: 'Image 6' },
+  ];
+
+  // First 2 Background Musics from https://github.com/Dinistpn/reactapp/tree/gh-pages/sound
+  bgMusicTracks: AudioTrack[] = [
     {
       id: 1,
-      title: 'React Logo',
-      src: process.env.PUBLIC_URL + '/logo192.png',
-      alt: 'React Logo 192',
+      title: 'Background Music 1',
+      artist: 'Repository Track',
+      src: process.env.PUBLIC_URL + '/sound/bgm.mp3',
     },
     {
       id: 2,
-      title: 'React Logo Large',
-      src: process.env.PUBLIC_URL + '/logo512.png',
-      alt: 'React Logo 512',
-    },
-    {
-      id: 3,
-      title: 'Favicon Icon',
-      src: process.env.PUBLIC_URL + '/favicon.ico',
-      alt: 'Favicon',
-    },
-    {
-      id: 4,
-      title: 'Sample Image 1',
-      src: 'https://picsum.photos/id/1011/600/400',
-      alt: 'Sample 1',
-    },
-    {
-      id: 5,
-      title: 'Sample Image 2',
-      src: 'https://picsum.photos/id/1015/600/400',
-      alt: 'Sample 2',
-    },
-    {
-      id: 6,
-      title: 'Sample Image 3',
-      src: 'https://picsum.photos/id/1018/600/400',
-      alt: 'Sample 3',
+      title: 'Background Music 2',
+      artist: 'Repository Track',
+      src: process.env.PUBLIC_URL + '/sound/bgm2.mp3',
     },
   ];
 
-  // Music Repository List
-  audioTracks: AudioTrack[] = [
-    {
-      id: 1,
-      title: 'Repository Track 1',
-      artist: 'Local Audio',
-      src: process.env.PUBLIC_URL + '/music.mp3',
-    },
-    {
-      id: 2,
-      title: 'Sample Relaxing Beat',
-      artist: 'Demo Music',
-      src: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-    },
-  ];
+  // Sound Effects
+  sfx = {
+    click: process.env.PUBLIC_URL + '/sound/mouse-click.mp3',
+    preparing: process.env.PUBLIC_URL + '/sound/preparing-the-match.mp3',
+    gameOver: process.env.PUBLIC_URL + '/sound/game-over.mp3',
+  };
 
   constructor(props: {}) {
     super(props);
     this.audioRef = React.createRef();
+    this.sfxRef = React.createRef();
     this.state = {
       activeTab: 'home',
       currentTime: new Date(),
@@ -136,7 +115,6 @@ class App extends Component<{}, AppState> {
   }
 
   componentDidMount() {
-    // Live clock timer
     this.timerID = setInterval(() => {
       this.setState({ currentTime: new Date() });
     }, 1000);
@@ -145,6 +123,15 @@ class App extends Component<{}, AppState> {
   componentWillUnmount() {
     if (this.timerID) clearInterval(this.timerID);
   }
+
+  // Play a specific sound effect
+  playSFX = (src: string) => {
+    if (this.sfxRef.current) {
+      this.sfxRef.current.src = src;
+      this.sfxRef.current.volume = this.state.volume;
+      this.sfxRef.current.play().catch((err) => console.log('SFX Play error:', err));
+    }
+  };
 
   // Navigation Switcher
   setActiveTab = (tab: 'home' | 'tasks' | 'gallery' | 'game' | 'about') => {
@@ -270,7 +257,7 @@ class App extends Component<{}, AppState> {
     } else {
       audio.play().then(() => {
         this.setState({ isPlaying: true });
-      }).catch((err) => console.log('Audio playback error:', err));
+      }).catch((err) => console.log('Audio error:', err));
     }
   };
 
@@ -297,6 +284,9 @@ class App extends Component<{}, AppState> {
 
     if (board[index] || gameHasEnded) return;
 
+    // Play mouse click sound effect on click
+    this.playSFX(this.sfx.click);
+
     const newBoard = board.slice();
     const currentPlayer = xIsNext ? 'X' : 'O';
     newBoard[index] = currentPlayer;
@@ -312,8 +302,12 @@ class App extends Component<{}, AppState> {
         isEnded = true;
         if (winner === 'X') updatedScoreX += 1;
         if (winner === 'O') updatedScoreO += 1;
+        // Play Game Over sound effect when a player wins
+        this.playSFX(this.sfx.gameOver);
       } else if (newBoard.every((square) => square !== null)) {
         isEnded = true;
+        // Play Game Over sound effect on draw
+        this.playSFX(this.sfx.gameOver);
       }
 
       return {
@@ -327,6 +321,9 @@ class App extends Component<{}, AppState> {
   };
 
   resetGame = () => {
+    // Play preparing match sound effect when starting next round
+    this.playSFX(this.sfx.preparing);
+
     this.setState({
       board: Array(9).fill(null),
       xIsNext: true,
@@ -335,6 +332,8 @@ class App extends Component<{}, AppState> {
   };
 
   resetScores = () => {
+    this.playSFX(this.sfx.preparing);
+
     this.setState({
       scoreX: 0,
       scoreO: 0,
@@ -381,12 +380,13 @@ class App extends Component<{}, AppState> {
     const winner = this.calculateWinner(board);
     const isBoardFull = board.every((square) => square !== null);
     const completedCount = tasks.filter((t) => t.completed).length;
-    const activeTrack = this.audioTracks[currentTrackIndex];
+    const activeTrack = this.bgMusicTracks[currentTrackIndex];
 
     return (
       <div className="d-flex flex-column min-vh-100 bg-light">
-        {/* Hidden Audio Tag */}
+        {/* Audio Elements */}
         <audio ref={this.audioRef} src={activeTrack.src} preload="metadata" />
+        <audio ref={this.sfxRef} preload="auto" />
 
         {/* Top Navbar */}
         <nav className="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
@@ -442,29 +442,28 @@ class App extends Component<{}, AppState> {
           </div>
         </nav>
 
-        {/* Audio Player Bar */}
+        {/* Music Player Header Bar */}
         <div className="bg-secondary text-white py-2 shadow-sm">
           <div className="container d-flex flex-wrap justify-content-between align-items-center">
             <div className="d-flex align-items-center gap-2">
-              <span className="fw-semibold">🎵 Now Playing:</span>
-              <small>{activeTrack.title} ({activeTrack.artist})</small>
+              <span className="fw-semibold">🎵 Background Music:</span>
+              <small>{activeTrack.title}</small>
             </div>
 
             <div className="d-flex align-items-center gap-3">
-              {/* Track Selector */}
+              {/* Select between first 2 musics */}
               <select
                 className="form-select form-select-sm bg-dark text-white border-0"
                 value={currentTrackIndex}
                 onChange={(e) => this.changeTrack(parseInt(e.target.value))}
               >
-                {this.audioTracks.map((track, idx) => (
+                {this.bgMusicTracks.map((track, idx) => (
                   <option key={track.id} value={idx}>
                     {track.title}
                   </option>
                 ))}
               </select>
 
-              {/* Play / Pause Button */}
               <button
                 className={`btn btn-sm ${isPlaying ? 'btn-warning' : 'btn-success'}`}
                 onClick={this.togglePlayPause}
@@ -472,7 +471,6 @@ class App extends Component<{}, AppState> {
                 {isPlaying ? '⏸ Pause' : '▶ Play'}
               </button>
 
-              {/* Volume Slider */}
               <div className="d-flex align-items-center gap-1">
                 <small>🔊</small>
                 <input
@@ -491,10 +489,10 @@ class App extends Component<{}, AppState> {
           </div>
         </div>
 
-        {/* Main Application Area */}
+        {/* Main Section */}
         <main className="container my-4 flex-grow-1" style={{ maxWidth: '850px' }}>
           
-          {/* HOME TAB */}
+          {/* HOME TAB WITH TIME */}
           {activeTab === 'home' && (
             <div className="text-center py-5">
               <h1 className="display-4 fw-bold mb-3">Hello world!</h1>
@@ -507,7 +505,7 @@ class App extends Component<{}, AppState> {
               </div>
 
               <p className="lead text-muted">
-                Welcome to the React application. Use the menu above to manage tasks, view the photo gallery, or play Tic-Tac-Toe!
+                Welcome to the React application. Use the navigation bar above to manage tasks, browse photos, listen to background music, or play Tic-Tac-Toe!
               </p>
             </div>
           )}
@@ -636,11 +634,11 @@ class App extends Component<{}, AppState> {
             </div>
           )}
 
-          {/* GALLERY TAB WITH ZOOM & NAVIGATION */}
+          {/* GALLERY TAB */}
           {activeTab === 'gallery' && (
             <div>
               <h3 className="mb-4 text-center">Repository Photo Gallery</h3>
-              <p className="text-center text-muted small">Click any image to expand, navigate, and zoom.</p>
+              <p className="text-center text-muted small">Click any image to view, navigate, and zoom.</p>
 
               <div className="row g-3">
                 {this.galleryImages.map((img, idx) => (
@@ -691,7 +689,7 @@ class App extends Component<{}, AppState> {
                         <img
                           src={this.galleryImages[selectedImgIndex].src}
                           alt={this.galleryImages[selectedImgIndex].alt}
-                          className="img-fluid transition-all"
+                          className="img-fluid"
                           style={{
                             transform: `scale(${zoomLevel})`,
                             maxHeight: '60vh',
@@ -700,7 +698,6 @@ class App extends Component<{}, AppState> {
                         />
                       </div>
 
-                      {/* Controls: Zoom & Navigation */}
                       <div className="modal-footer border-secondary justify-content-between">
                         <div className="btn-group">
                           <button className="btn btn-outline-light btn-sm" onClick={this.zoomIn}>
@@ -797,7 +794,7 @@ class App extends Component<{}, AppState> {
             <div className="card p-4 shadow-sm">
               <h3 className="card-title mb-3">About This Application</h3>
               <p className="card-text">
-                This is a React TypeScript application built with Bootstrap. It includes dynamic task management with bulk deletion, an interactive image gallery with zoom/navigation, a music player, live time display, and a Tic-Tac-Toe game with scoreboard tracking.
+                This is a React TypeScript application built with Bootstrap. It includes dynamic task management with bulk deletion, an image gallery pointing directly to repository image files, background audio controls, game sound effects, and a Tic-Tac-Toe game with scoreboard tracking.
               </p>
             </div>
           )}
