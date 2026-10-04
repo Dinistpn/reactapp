@@ -59,14 +59,14 @@ class App extends Component<{}, AppState> {
 
   // Gallery Images 1_img.jpg through 26_img.jpg
   galleryImages = Array.from({ length: 26 }, (_, index) => {
-  const num = index + 1;
-  return {
-    id: num,
-    title: `Image ${num}`,
-    src: `${process.env.PUBLIC_URL}/img/${num}_img.jpg`,
-    alt: `Image ${num}`,
-  };
-});
+    const num = index + 1;
+    return {
+      id: num,
+      title: `Image ${num}`,
+      src: `${process.env.PUBLIC_URL}/img/${num}_img.jpg`,
+      alt: `Image ${num}`,
+    };
+  });
 
   // Background Musics 1.m4a and 2.m4a
   bgMusicTracks: AudioTrack[] = [
@@ -941,22 +941,24 @@ class App extends Component<{}, AppState> {
 
           {/* ABOUT TAB */}
           {activeTab === 'about' && (
-            <div className="card p-3 p-sm-4 shadow-sm">
-              <h4 className="card-title mb-3">About This Application</h4>
-              <p className="card-text text-muted">
-                This touch-friendly, fully responsive React application features dynamic tasks, interactive background music and game SFX, a 26-image gallery viewer with fullscreen mode, mouse & touch-drag panning, live clock, and Tic-Tac-Toe.
-              </p>
+            <div className="py-3">
+              <h3 className="mb-3 text-center">About This App</h3>
+              <div className="card shadow-sm p-4 bg-white rounded">
+                <p>
+                  This application is a feature-rich React TypeScript web application built with Bootstrap. It showcases component state management, responsive UI design, gesture handling, and media integration.
+                </p>
+                <h5 className="mt-3">Features Included:</h5>
+                <ul>
+                  <li><strong>Live Time Display:</strong> Real-time clock updating every second.</li>
+                  <li><strong>Task Tracker:</strong> Full CRUD capability for tasks with edit, complete, delete, and bulk delete features.</li>
+                  <li><strong>Photo Gallery:</strong> Responsive grid displaying 26 images with dynamic modal lightbox supporting zoom (in/out/reset), fullscreen toggle, and touch/mouse panning.</li>
+                  <li><strong>Background Music Player:</strong> Built-in audio controller with play/pause, volume control, and track switcher.</li>
+                  <li><strong>Tic-Tac-Toe Game:</strong> Interactive 2-player game complete with sound effects, automatic winner detection, draw state, score persistence, and round resets.</li>
+                </ul>
+              </div>
             </div>
           )}
-
         </main>
-
-        {/* Footer */}
-        <footer className="bg-dark text-white text-center py-2 mt-auto">
-          <div className="container-fluid">
-            <small>&copy; {new Date().getFullYear()} Dinistpn. All rights reserved.</small>
-          </div>
-        </footer>
       </div>
     );
   }
