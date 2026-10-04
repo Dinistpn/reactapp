@@ -54,21 +54,24 @@ class App extends Component<{}, AppState> {
   private sfxRef: React.RefObject<HTMLAudioElement>;
   private modalContainerRef: React.RefObject<HTMLDivElement>;
 
-  // Direct Raw URLs for Assets in the gh-pages branch
+  // Direct URL for assets hosted on GitHub Pages
   rawBranchUrl = 'https://dinistpn.github.io/reactapp';
 
-  // Gallery Images 1_img.jpg through 26_img.jpg
+  // Gallery Images with gh-pages fallback
   galleryImages = Array.from({ length: 26 }, (_, index) => {
     const num = index + 1;
+    const publicUrl = process.env.PUBLIC_URL || '';
+    const imagePath = `/img/${num}_img.jpg`;
+    
     return {
       id: num,
       title: `Image ${num}`,
-      src: `${process.env.PUBLIC_URL}/img/${num}_img.jpg`,
+      src: publicUrl ? `${publicUrl}${imagePath}` : `${this.rawBranchUrl}${imagePath}`,
       alt: `Image ${num}`,
     };
   });
 
-  // Background Musics 1.m4a and 2.m4a
+  // Background Musics
   bgMusicTracks: AudioTrack[] = [
     {
       id: 1,
@@ -765,7 +768,6 @@ class App extends Component<{}, AppState> {
                 Tap an image for Full Screen, Zooming, and Drag/Touch Panning.
               </p>
 
-              {/* Mobile-Optimized Grid Layout */}
               <div className="row g-2 g-sm-3">
                 {this.galleryImages.map((img, idx) => (
                   <div key={img.id} className="col-6 col-sm-4 col-md-3">
@@ -782,6 +784,10 @@ class App extends Component<{}, AppState> {
                           src={img.src}
                           className="card-img-top mh-100 mw-100 object-fit-cover"
                           alt={img.alt}
+                          onError={(e) => {
+                            // Fallback in case process.env.PUBLIC_URL fails
+                            (e.target as HTMLImageElement).src = `${this.rawBranchUrl}/img/${img.id}_img.jpg`;
+                          }}
                         />
                       </div>
                       <div className="card-body p-2 text-center bg-white">
@@ -794,7 +800,7 @@ class App extends Component<{}, AppState> {
                 ))}
               </div>
 
-              {/* Fullscreen & Drag Lightbox Modal */}
+              {/* Lightbox Modal */}
               {selectedImgIndex !== null && (
                 <div
                   ref={this.modalContainerRef}
@@ -835,6 +841,9 @@ class App extends Component<{}, AppState> {
                           alt={this.galleryImages[selectedImgIndex].alt}
                           onMouseDown={this.handleMouseDown}
                           onTouchStart={this.handleTouchStart}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `${this.rawBranchUrl}/img/${selectedImgIndex + 1}_img.jpg`;
+                          }}
                           style={{
                             transform: `translate(${position.x}px, ${position.y}px) scale(${zoomLevel})`,
                             maxHeight: '100%',
@@ -906,7 +915,6 @@ class App extends Component<{}, AppState> {
                 )}
               </div>
 
-              {/* Mobile Touch Grid */}
               <div
                 className="d-grid mx-auto mb-4"
                 style={{
