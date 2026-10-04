@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-// Interfaces for component state and props
+// Interfaces
 interface Task {
   id: number;
   text: string;
@@ -17,6 +17,7 @@ interface AudioTrack {
 interface AppState {
   // Navigation State
   activeTab: 'home' | 'tasks' | 'gallery' | 'game' | 'about';
+  navMenuOpen: boolean;
 
   // Live Time
   currentTime: Date;
@@ -27,15 +28,12 @@ interface AppState {
   editingTaskId: number | null;
   editingTaskText: string;
 
-  // Gallery Modal & Zoom & Pan State
+  // Gallery Modal, Zoom & Drag State
   selectedImgIndex: number | null;
   zoomLevel: number;
-  panX: number;
-  panY: number;
   isDragging: boolean;
-  dragStartX: number;
-  dragStartY: number;
-  isFullscreen: boolean;
+  dragStart: { x: number; y: number };
+  position: { x: number; y: number };
 
   // Music Player State
   currentTrackIndex: number;
@@ -56,21 +54,21 @@ class App extends Component<{}, AppState> {
   private sfxRef: React.RefObject<HTMLAudioElement>;
   private modalContainerRef: React.RefObject<HTMLDivElement>;
 
-  // Direct Raw URLs for Assets residing on the gh-pages branch
+  // Direct Raw URLs for Assets in the gh-pages branch
   rawBranchUrl = 'https://raw.githubusercontent.com/Dinistpn/reactapp/gh-pages';
 
-  // Gallery Images 1_img.jpg through 21_img.jpg from gh-pages/img/
-  galleryImages = Array.from({ length: 21 }, (_, index) => {
+  // Gallery Images 1_img.jpg through 26_img.jpg
+  galleryImages = Array.from({ length: 26 }, (_, index) => {
     const num = index + 1;
     return {
       id: num,
       title: `Image ${num}`,
       src: `${this.rawBranchUrl}/img/${num}_img.jpg`,
-      alt: `Gallery Photo ${num}`,
+      alt: `Image ${num}`,
     };
   });
 
-  // Background Musics 1.m4a and 2.m4a from gh-pages/sound/
+  // Background Musics 1.m4a and 2.m4a
   bgMusicTracks: AudioTrack[] = [
     {
       id: 1,
@@ -86,7 +84,7 @@ class App extends Component<{}, AppState> {
     },
   ];
 
-  // Game SFX from gh-pages/sound/
+  // Game SFX
   sfx = {
     click: `${this.rawBranchUrl}/sound/mouseclick1.wav`,
     preparing: `${this.rawBranchUrl}/sound/preparing-the-match.mp3`,
@@ -101,26 +99,21 @@ class App extends Component<{}, AppState> {
 
     this.state = {
       activeTab: 'home',
+      navMenuOpen: false,
       currentTime: new Date(),
 
       // Tasks
-      tasks: [
-        { id: 1, text: 'Check out the photo gallery', completed: false },
-        { id: 2, text: 'Play a round of Tic-Tac-Toe', completed: false },
-      ],
+      tasks: [],
       taskInput: '',
       editingTaskId: null,
       editingTaskText: '',
 
-      // Gallery Modal & Pan / Zoom State
+      // Gallery Modal & Zoom & Drag
       selectedImgIndex: null,
       zoomLevel: 1,
-      panX: 0,
-      panY: 0,
       isDragging: false,
-      dragStartX: 0,
-      dragStartY: 0,
-      isFullscreen: false,
+      dragStart: { x: 0, y: 0 },
+      position: { x: 0, y: 0 },
 
       // Music Player
       currentTrackIndex: 0,
@@ -140,22 +133,13 @@ class App extends Component<{}, AppState> {
     this.timerID = setInterval(() => {
       this.setState({ currentTime: new Date() });
     }, 1000);
-
-    // Fullscreen change listener
-    document.addEventListener('fullscreenchange', this.handleFullscreenChange);
   }
 
   componentWillUnmount() {
     if (this.timerID) clearInterval(this.timerID);
-    document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
   }
 
-  // Handle browser full screen change
-  handleFullscreenChange = () => {
-    this.setState({ isFullscreen: !!document.fullscreenElement });
-  };
-
-  // Helper for triggering SFX
+  // Play SFX helper
   playSFX = (src: string) => {
     if (this.sfxRef.current) {
       this.sfxRef.current.src = src;
@@ -166,9 +150,14 @@ class App extends Component<{}, AppState> {
 
   // Navigation Switcher
   setActiveTab = (tab: 'home' | 'tasks' | 'gallery' | 'game' | 'about') => {
-    this.setState({ activeTab: tab });
+    this.setState({ activeTab: tab, navMenuOpen: false });
   };
 
+  toggleNavMenu = () => {
+    this.setState((prev) => ({ navMenuOpen: !prev.navMenuOpen }));
+  };
+
+  // --- Task Handlers ---
   handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ taskInput: e.target.value });
   };
@@ -231,28 +220,40 @@ class App extends Component<{}, AppState> {
     }));
   };
 
+  // --- Gallery & Zoom & Drag Handlers ---
   openGalleryModal = (index: number) => {
     this.setState({
       selectedImgIndex: index,
       zoomLevel: 1,
-      panX: 0,
-      panY: 0,
-      isDragging: false,
+      position: { x: 0, y: 0 },
     });
   };
 
   closeGalleryModal = () => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
-    }
     this.setState({
       selectedImgIndex: null,
       zoomLevel: 1,
-      panX: 0,
-      panY: 0,
-      isDragging: false,
-      isFullscreen: false,
+      position: { x: 0, y: 0 },
     });
+  };
+
+  toggleFullScreen = () => {
+    const container = this.modalContainerRef.current;
+    if (!container) return;
+
+    if (!document.fullscreenElement) {
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else if ((container as any).webkitRequestFullscreen) {
+        (container as any).webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      }
+    }
   };
 
   prevGalleryImage = () => {
@@ -262,7 +263,7 @@ class App extends Component<{}, AppState> {
         prevState.selectedImgIndex === 0
           ? this.galleryImages.length - 1
           : prevState.selectedImgIndex - 1;
-      return { selectedImgIndex: newIndex, zoomLevel: 1, panX: 0, panY: 0 };
+      return { selectedImgIndex: newIndex, zoomLevel: 1, position: { x: 0, y: 0 } };
     });
   };
 
@@ -271,72 +272,95 @@ class App extends Component<{}, AppState> {
       if (prevState.selectedImgIndex === null) return null;
       const newIndex =
         (prevState.selectedImgIndex + 1) % this.galleryImages.length;
-      return { selectedImgIndex: newIndex, zoomLevel: 1, panX: 0, panY: 0 };
+      return { selectedImgIndex: newIndex, zoomLevel: 1, position: { x: 0, y: 0 } };
     });
   };
 
   zoomIn = () => {
     this.setState((prevState) => ({
-      zoomLevel: Math.min(prevState.zoomLevel + 0.5, 4),
+      zoomLevel: Math.min(prevState.zoomLevel + 0.25, 3.5),
     }));
   };
 
   zoomOut = () => {
     this.setState((prevState) => {
-      const nextZoom = Math.max(prevState.zoomLevel - 0.5, 1);
-      // Reset pan if zoomed back to 1
+      const newZoom = Math.max(prevState.zoomLevel - 0.25, 0.5);
       return {
-        zoomLevel: nextZoom,
-        panX: nextZoom === 1 ? 0 : prevState.panX,
-        panY: nextZoom === 1 ? 0 : prevState.panY,
+        zoomLevel: newZoom,
+        position: newZoom <= 1 ? { x: 0, y: 0 } : prevState.position,
       };
     });
   };
 
   resetZoom = () => {
-    this.setState({ zoomLevel: 1, panX: 0, panY: 0 });
+    this.setState({ zoomLevel: 1, position: { x: 0, y: 0 } });
   };
 
-  toggleFullscreen = () => {
-    if (!this.modalContainerRef.current) return;
-
-    if (!document.fullscreenElement) {
-      this.modalContainerRef.current.requestFullscreen().catch((err) => {
-        console.error('Fullscreen request error:', err);
-      });
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
-  };
-
-  // Mouse drag handlers for panning zoomed images
+  // Dragging / Panning Handlers (Mouse)
   handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
     if (this.state.zoomLevel > 1) {
       e.preventDefault();
       this.setState({
         isDragging: true,
-        dragStartX: e.clientX - this.state.panX,
-        dragStartY: e.clientY - this.state.panY,
+        dragStart: {
+          x: e.clientX - this.state.position.x,
+          y: e.clientY - this.state.position.y,
+        },
       });
     }
   };
 
-  handleMouseMove = (e: React.MouseEvent<HTMLImageElement>) => {
+  handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (this.state.isDragging && this.state.zoomLevel > 1) {
       e.preventDefault();
       this.setState({
-        panX: e.clientX - this.state.dragStartX,
-        panY: e.clientY - this.state.dragStartY,
+        position: {
+          x: e.clientX - this.state.dragStart.x,
+          y: e.clientY - this.state.dragStart.y,
+        },
       });
     }
   };
 
-  handleMouseUpOrLeave = () => {
+  handleMouseUp = () => {
     if (this.state.isDragging) {
       this.setState({ isDragging: false });
     }
   };
 
+  // Dragging / Panning Handlers (Mobile Touch)
+  handleTouchStart = (e: React.TouchEvent<HTMLImageElement>) => {
+    if (this.state.zoomLevel > 1 && e.touches.length === 1) {
+      const touch = e.touches[0];
+      this.setState({
+        isDragging: true,
+        dragStart: {
+          x: touch.clientX - this.state.position.x,
+          y: touch.clientY - this.state.position.y,
+        },
+      });
+    }
+  };
+
+  handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (this.state.isDragging && this.state.zoomLevel > 1 && e.touches.length === 1) {
+      const touch = e.touches[0];
+      this.setState({
+        position: {
+          x: touch.clientX - this.state.dragStart.x,
+          y: touch.clientY - this.state.dragStart.y,
+        },
+      });
+    }
+  };
+
+  handleTouchEnd = () => {
+    if (this.state.isDragging) {
+      this.setState({ isDragging: false });
+    }
+  };
+
+  // --- Audio Player Handlers ---
   togglePlayPause = () => {
     const audio = this.audioRef.current;
     if (!audio) return;
@@ -350,7 +374,7 @@ class App extends Component<{}, AppState> {
         .then(() => {
           this.setState({ isPlaying: true });
         })
-        .catch((err) => console.log('Audio playback error:', err));
+        .catch((err) => console.log('Audio error:', err));
     }
   };
 
@@ -371,12 +395,12 @@ class App extends Component<{}, AppState> {
     });
   };
 
+  // --- Tic-Tac-Toe Handlers ---
   handleSquareClick = (index: number) => {
     const { board, xIsNext, gameHasEnded } = this.state;
 
     if (board[index] || gameHasEnded) return;
 
-    // Trigger mouse click SFX
     this.playSFX(this.sfx.click);
 
     const newBoard = board.slice();
@@ -394,11 +418,9 @@ class App extends Component<{}, AppState> {
         isEnded = true;
         if (winner === 'X') updatedScoreX += 1;
         if (winner === 'O') updatedScoreO += 1;
-        // Game Over sound effect
         this.playSFX(this.sfx.gameOver);
       } else if (newBoard.every((square) => square !== null)) {
         isEnded = true;
-        // Draw sound effect
         this.playSFX(this.sfx.gameOver);
       }
 
@@ -413,7 +435,6 @@ class App extends Component<{}, AppState> {
   };
 
   resetGame = () => {
-    // Play preparing match sound effect
     this.playSFX(this.sfx.preparing);
 
     this.setState({
@@ -453,6 +474,7 @@ class App extends Component<{}, AppState> {
   render() {
     const {
       activeTab,
+      navMenuOpen,
       currentTime,
       tasks,
       taskInput,
@@ -460,10 +482,8 @@ class App extends Component<{}, AppState> {
       editingTaskText,
       selectedImgIndex,
       zoomLevel,
-      panX,
-      panY,
       isDragging,
-      isFullscreen,
+      position,
       currentTrackIndex,
       isPlaying,
       volume,
@@ -479,88 +499,104 @@ class App extends Component<{}, AppState> {
     const activeTrack = this.bgMusicTracks[currentTrackIndex];
 
     return (
-      <div className="d-flex flex-column min-vh-100 bg-light">
+      <div className="d-flex flex-column min-vh-100 bg-light overflow-x-hidden">
         {/* Audio Elements */}
         <audio ref={this.audioRef} src={activeTrack.src} preload="metadata" />
         <audio ref={this.sfxRef} preload="auto" />
 
-        {/* Top Navbar */}
-        <nav className="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-          <div className="container">
+        {/* Mobile-Responsive Navbar */}
+        <nav className="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
+          <div className="container-fluid px-3">
             <button
-              className="navbar-brand btn btn-link text-white text-decoration-none fw-bold"
+              className="navbar-brand btn btn-link text-white text-decoration-none fw-bold fs-5 p-0"
               onClick={() => this.setActiveTab('home')}
             >
               React App
             </button>
-            <div className="navbar-nav d-flex flex-row gap-3">
-              <button
-                className={`nav-link btn btn-link text-decoration-none ${
-                  activeTab === 'home' ? 'active fw-bold border-bottom' : ''
-                }`}
-                onClick={() => this.setActiveTab('home')}
-              >
-                Home
-              </button>
-              <button
-                className={`nav-link btn btn-link text-decoration-none ${
-                  activeTab === 'tasks' ? 'active fw-bold border-bottom' : ''
-                }`}
-                onClick={() => this.setActiveTab('tasks')}
-              >
-                Tasks
-              </button>
-              <button
-                className={`nav-link btn btn-link text-decoration-none ${
-                  activeTab === 'gallery' ? 'active fw-bold border-bottom' : ''
-                }`}
-                onClick={() => this.setActiveTab('gallery')}
-              >
-                Gallery
-              </button>
-              <button
-                className={`nav-link btn btn-link text-decoration-none ${
-                  activeTab === 'game' ? 'active fw-bold border-bottom' : ''
-                }`}
-                onClick={() => this.setActiveTab('game')}
-              >
-                Tic-Tac-Toe
-              </button>
-              <button
-                className={`nav-link btn btn-link text-decoration-none ${
-                  activeTab === 'about' ? 'active fw-bold border-bottom' : ''
-                }`}
-                onClick={() => this.setActiveTab('about')}
-              >
-                About
-              </button>
+
+            {/* Mobile Toggler Button */}
+            <button
+              className="navbar-toggler border-0"
+              type="button"
+              onClick={this.toggleNavMenu}
+              aria-label="Toggle navigation"
+            >
+              <span className="navbar-toggler-icon"></span>
+            </button>
+
+            <div className={`collapse navbar-collapse ${navMenuOpen ? 'show' : ''}`}>
+              <div className="navbar-nav ms-auto gap-1 gap-lg-3 pt-2 pt-lg-0">
+                <button
+                  className={`nav-link btn btn-link text-start text-decoration-none px-3 py-2 ${
+                    activeTab === 'home' ? 'active fw-bold text-white bg-primary bg-opacity-25 rounded' : 'text-light'
+                  }`}
+                  onClick={() => this.setActiveTab('home')}
+                >
+                  Home
+                </button>
+                <button
+                  className={`nav-link btn btn-link text-start text-decoration-none px-3 py-2 ${
+                    activeTab === 'tasks' ? 'active fw-bold text-white bg-primary bg-opacity-25 rounded' : 'text-light'
+                  }`}
+                  onClick={() => this.setActiveTab('tasks')}
+                >
+                  Tasks
+                </button>
+                <button
+                  className={`nav-link btn btn-link text-start text-decoration-none px-3 py-2 ${
+                    activeTab === 'gallery' ? 'active fw-bold text-white bg-primary bg-opacity-25 rounded' : 'text-light'
+                  }`}
+                  onClick={() => this.setActiveTab('gallery')}
+                >
+                  Gallery
+                </button>
+                <button
+                  className={`nav-link btn btn-link text-start text-decoration-none px-3 py-2 ${
+                    activeTab === 'game' ? 'active fw-bold text-white bg-primary bg-opacity-25 rounded' : 'text-light'
+                  }`}
+                  onClick={() => this.setActiveTab('game')}
+                >
+                  Tic-Tac-Toe
+                </button>
+                <button
+                  className={`nav-link btn btn-link text-start text-decoration-none px-3 py-2 ${
+                    activeTab === 'about' ? 'active fw-bold text-white bg-primary bg-opacity-25 rounded' : 'text-light'
+                  }`}
+                  onClick={() => this.setActiveTab('about')}
+                >
+                  About
+                </button>
+              </div>
             </div>
           </div>
         </nav>
 
-        {/* Music Player Control Bar */}
+        {/* Music Player Bar */}
         <div className="bg-secondary text-white py-2 shadow-sm">
-          <div className="container d-flex flex-wrap justify-content-between align-items-center">
+          <div className="container-fluid px-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
             <div className="d-flex align-items-center gap-2">
-              <span className="fw-semibold">🎵 Background Music:</span>
-              <small>{activeTrack.title}</small>
+              <span className="fw-semibold">🎵 Music:</span>
+              <small className="text-truncate" style={{ maxWidth: '150px' }}>
+                {activeTrack.title}
+              </small>
             </div>
 
-            <div className="d-flex align-items-center gap-3">
+            <div className="d-flex align-items-center justify-content-between w-100 w-sm-auto gap-2">
               <select
                 className="form-select form-select-sm bg-dark text-white border-0"
+                style={{ width: '110px' }}
                 value={currentTrackIndex}
                 onChange={(e) => this.changeTrack(parseInt(e.target.value))}
               >
                 {this.bgMusicTracks.map((track, idx) => (
                   <option key={track.id} value={idx}>
-                    {track.title} ({track.src.split('/').pop()})
+                    {track.title}
                   </option>
                 ))}
               </select>
 
               <button
-                className={`btn btn-sm ${isPlaying ? 'btn-warning' : 'btn-success'}`}
+                className={`btn btn-sm px-3 ${isPlaying ? 'btn-warning' : 'btn-success'}`}
                 onClick={this.togglePlayPause}
               >
                 {isPlaying ? '⏸ Pause' : '▶ Play'}
@@ -571,36 +607,35 @@ class App extends Component<{}, AppState> {
                 <input
                   type="range"
                   className="form-range"
-                  style={{ width: '80px' }}
+                  style={{ width: '60px' }}
                   min="0"
                   max="1"
                   step="0.05"
                   value={volume}
                   onChange={this.handleVolumeChange}
                 />
-                <small>{Math.round(volume * 100)}%</small>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Application Container */}
-        <main className="container my-4 flex-grow-1" style={{ maxWidth: '850px' }}>
+        {/* Main Content Section */}
+        <main className="container-fluid px-3 my-3 flex-grow-1 mx-auto" style={{ maxWidth: '850px' }}>
           
           {/* HOME TAB */}
           {activeTab === 'home' && (
-            <div className="text-center py-5">
-              <h1 className="display-4 fw-bold mb-3">Hello world!</h1>
+            <div className="text-center py-4 py-md-5">
+              <h1 className="display-5 fw-bold mb-3">Hello world!</h1>
               
-              {/* Live Clock Component */}
-              <div className="card mx-auto my-4 p-3 shadow-sm bg-dark text-white" style={{ maxWidth: '300px' }}>
+              {/* Live Clock Card */}
+              <div className="card mx-auto my-4 p-3 shadow-sm bg-dark text-white" style={{ maxWidth: '280px' }}>
                 <small className="text-muted text-uppercase tracking-wide">Current Time</small>
-                <h2 className="fw-mono mt-1 mb-0">{currentTime.toLocaleTimeString()}</h2>
+                <h2 className="fw-mono mt-1 mb-0 fs-3">{currentTime.toLocaleTimeString()}</h2>
                 <small className="text-secondary">{currentTime.toLocaleDateString()}</small>
               </div>
 
-              <p className="lead text-muted">
-                Welcome to the application. Use the navigation bar above to manage tasks, browse photos, listen to music, or play Tic-Tac-Toe!
+              <p className="lead text-muted fs-6 px-2">
+                Welcome to the mobile-optimized React application. Manage tasks, view photos with zoom and pan gestures, listen to music, or play Tic-Tac-Toe on any device!
               </p>
             </div>
           )}
@@ -608,17 +643,12 @@ class App extends Component<{}, AppState> {
           {/* TASKS TAB */}
           {activeTab === 'tasks' && (
             <div>
-              <h3 className="mb-4 text-center">Task Tracker</h3>
+              <h3 className="mb-3 text-center">Task Tracker</h3>
 
               <div className="input-group mb-3 shadow-sm">
-                <div className="input-group-prepend">
-                  <span className="input-group-text bg-white" id="btnGroupAddon">
-                    Introduce a Task
-                  </span>
-                </div>
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-control form-control-lg fs-6"
                   placeholder="Type your task here..."
                   aria-label="Introduce a Task"
                   value={taskInput}
@@ -627,7 +657,7 @@ class App extends Component<{}, AppState> {
                 />
                 <button
                   type="button"
-                  className="btn btn-primary"
+                  className="btn btn-primary px-3"
                   onClick={this.addTask}
                 >
                   Submit
@@ -640,14 +670,14 @@ class App extends Component<{}, AppState> {
                     className="btn btn-danger btn-sm shadow-sm"
                     onClick={this.deleteAllSelectedTasks}
                   >
-                    Delete All Selected ({completedCount})
+                    Delete Selected ({completedCount})
                   </button>
                 </div>
               )}
 
               <div className="containerA">
                 {tasks.length === 0 ? (
-                  <div className="alert alert-info text-center shadow-sm" role="alert">
+                  <div className="alert alert-info text-center shadow-sm py-3" role="alert">
                     There are no tasks yet!
                   </div>
                 ) : (
@@ -655,10 +685,10 @@ class App extends Component<{}, AppState> {
                     {tasks.map((task) => (
                       <li
                         key={task.id}
-                        className="list-group-item d-flex justify-content-between align-items-center"
+                        className="list-group-item d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 py-2 px-3"
                       >
                         {editingTaskId === task.id ? (
-                          <div className="input-group">
+                          <div className="input-group w-100">
                             <input
                               type="text"
                               className="form-control"
@@ -685,19 +715,17 @@ class App extends Component<{}, AppState> {
                           </div>
                         ) : (
                           <>
-                            <div className="d-flex align-items-center">
+                            <div className="d-flex align-items-center w-100 text-break">
                               <input
                                 type="checkbox"
-                                className="form-check-input me-2"
+                                className="form-check-input me-3 flex-shrink-0"
+                                style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer' }}
                                 checked={task.completed}
                                 onChange={() => this.toggleTaskCompletion(task.id)}
-                                style={{ cursor: 'pointer' }}
                               />
                               <span
                                 style={{
-                                  textDecoration: task.completed
-                                    ? 'line-through'
-                                    : 'none',
+                                  textDecoration: task.completed ? 'line-through' : 'none',
                                   color: task.completed ? '#6c757d' : '#212529',
                                 }}
                               >
@@ -705,9 +733,9 @@ class App extends Component<{}, AppState> {
                               </span>
                             </div>
 
-                            <div>
+                            <div className="d-flex gap-2 ms-auto">
                               <button
-                                className="btn btn-sm btn-outline-warning me-2"
+                                className="btn btn-sm btn-outline-warning"
                                 onClick={() => this.startEditing(task)}
                               >
                                 Edit
@@ -729,53 +757,68 @@ class App extends Component<{}, AppState> {
             </div>
           )}
 
-          {}
+          {/* GALLERY TAB */}
           {activeTab === 'gallery' && (
             <div>
-              <h3 className="mb-2 text-center">Repository Photo Gallery (21 Images)</h3>
-              <p className="text-center text-muted small mb-4">
-                Click any image to expand. Zoom in to enable mouse drag panning or toggle full-screen mode!
+              <h3 className="mb-2 text-center">Photo Gallery</h3>
+              <p className="text-center text-muted small mb-3">
+                Tap an image for Full Screen, Zooming, and Drag/Touch Panning.
               </p>
 
-              <div className="row g-3">
+              {/* Mobile-Optimized Grid Layout */}
+              <div className="row g-2 g-sm-3">
                 {this.galleryImages.map((img, idx) => (
-                  <div key={img.id} className="col-md-4 col-sm-6">
+                  <div key={img.id} className="col-6 col-sm-4 col-md-3">
                     <div
-                      className="card shadow-sm h-100"
+                      className="card shadow-sm h-100 border-0"
                       style={{ cursor: 'pointer' }}
                       onClick={() => this.openGalleryModal(idx)}
                     >
                       <div
-                        className="d-flex align-items-center justify-content-center bg-light"
-                        style={{ height: '180px', overflow: 'hidden' }}
+                        className="d-flex align-items-center justify-content-center bg-light rounded"
+                        style={{ height: '130px', overflow: 'hidden' }}
                       >
                         <img
                           src={img.src}
-                          className="card-img-top mh-100 mw-100 object-fit-contain p-2"
+                          className="card-img-top mh-100 mw-100 object-fit-cover"
                           alt={img.alt}
                         />
                       </div>
                       <div className="card-body p-2 text-center bg-white">
-                        <small className="fw-semibold text-dark">{img.title}</small>
+                        <small className="fw-semibold text-dark d-block text-truncate">
+                          {img.title}
+                        </small>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Lightbox / Modal with Zoom, Drag & Fullscreen Capabilities */}
+              {/* Fullscreen & Drag Lightbox Modal */}
               {selectedImgIndex !== null && (
                 <div
                   ref={this.modalContainerRef}
                   className="modal show d-block"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 1050 }}
+                  style={{ backgroundColor: 'rgba(0,0,0,0.92)', zIndex: 1050 }}
+                  onMouseMove={this.handleMouseMove}
+                  onMouseUp={this.handleMouseUp}
+                  onTouchMove={this.handleTouchMove}
+                  onTouchEnd={this.handleTouchEnd}
                 >
-                  <div className={`modal-dialog modal-dialog-centered ${isFullscreen ? 'modal-fullscreen' : 'modal-lg'}`}>
-                    <div className="modal-content bg-dark text-white border-0 h-100">
-                      <div className="modal-header border-secondary">
-                        <h5 className="modal-title">
+                  <div className="modal-dialog modal-dialog-centered modal-lg my-0 my-sm-auto min-vh-100 d-flex align-items-center">
+                    <div className="modal-content bg-dark text-white border-0 shadow-lg">
+                      <div className="modal-header border-secondary py-2 px-3">
+                        <h6 className="modal-title text-truncate me-auto">
                           {this.galleryImages[selectedImgIndex].title} ({selectedImgIndex + 1}/{this.galleryImages.length})
-                        </h5>
+                        </h6>
+                        <button
+                          type="button"
+                          className="btn btn-outline-light btn-sm me-2 py-0 px-2"
+                          onClick={this.toggleFullScreen}
+                          title="Toggle Fullscreen"
+                        >
+                          ⛶
+                        </button>
                         <button
                           type="button"
                           className="btn-close btn-close-white"
@@ -783,69 +826,44 @@ class App extends Component<{}, AppState> {
                         ></button>
                       </div>
 
-                      {/* Modal Body with Pan / Drag Mouse Listeners */}
                       <div
-                        className="modal-body text-center overflow-hidden d-flex align-items-center justify-content-center position-relative"
-                        style={{
-                          minHeight: '400px',
-                          maxHeight: isFullscreen ? 'calc(100vh - 120px)' : '65vh',
-                          userSelect: 'none',
-                        }}
+                        className="modal-body text-center overflow-hidden p-0 d-flex align-items-center justify-content-center"
+                        style={{ height: '60vh', minHeight: '300px', userSelect: 'none' }}
                       >
                         <img
                           src={this.galleryImages[selectedImgIndex].src}
                           alt={this.galleryImages[selectedImgIndex].alt}
-                          className="img-fluid"
-                          style={{
-                            transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel})`,
-                            maxHeight: isFullscreen ? '90vh' : '55vh',
-                            cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
-                            transition: isDragging ? 'none' : 'transform 0.2s ease-out',
-                          }}
                           onMouseDown={this.handleMouseDown}
-                          onMouseMove={this.handleMouseMove}
-                          onMouseUp={this.handleMouseUpOrLeave}
-                          onMouseLeave={this.handleMouseUpOrLeave}
-                          draggable={false}
+                          onTouchStart={this.handleTouchStart}
+                          style={{
+                            transform: `translate(${position.x}px, ${position.y}px) scale(${zoomLevel})`,
+                            maxHeight: '100%',
+                            maxWidth: '100%',
+                            objectFit: 'contain',
+                            cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
+                            transition: isDragging ? 'none' : 'transform 0.15s ease-out',
+                          }}
                         />
                       </div>
 
-                      {/* Controls Toolbar */}
-                      <div className="modal-footer border-secondary justify-content-between flex-wrap gap-2">
-                        {/* Zoom Controls */}
-                        <div className="btn-group">
-                          <button className="btn btn-outline-light btn-sm" onClick={this.zoomIn}>
-                            🔍 Zoom In (+)
+                      <div className="modal-footer border-secondary justify-content-between flex-wrap gap-2 py-2 px-3">
+                        <div className="btn-group btn-group-sm">
+                          <button className="btn btn-outline-light" onClick={this.zoomIn}>
+                            ➕ Zoom In
                           </button>
-                          <button className="btn btn-outline-light btn-sm" onClick={this.zoomOut}>
-                            🔎 Zoom Out (-)
+                          <button className="btn btn-outline-light" onClick={this.zoomOut}>
+                            ➖ Zoom Out
                           </button>
-                          <button className="btn btn-outline-secondary btn-sm" onClick={this.resetZoom}>
+                          <button className="btn btn-outline-secondary" onClick={this.resetZoom}>
                             Reset ({Math.round(zoomLevel * 100)}%)
                           </button>
                         </div>
 
-                        {/* Fullscreen & Drag Helper Indicator */}
-                        <div className="d-flex align-items-center gap-2">
-                          {zoomLevel > 1 && (
-                            <span className="badge bg-info text-dark">
-                              🖱️ Drag with mouse to pan
-                            </span>
-                          )}
-                          <button
-                            className={`btn btn-sm ${isFullscreen ? 'btn-warning' : 'btn-outline-info'}`}
-                            onClick={this.toggleFullscreen}
-                          >
-                            {isFullscreen ? '📉 Exit Fullscreen' : '⛶ Fullscreen'}
+                        <div className="btn-group btn-group-sm ms-auto">
+                          <button className="btn btn-primary" onClick={this.prevGalleryImage}>
+                            ⬅ Prev
                           </button>
-                        </div>
-
-                        {/* Navigation Controls */}
-                        <div className="btn-group">
-                          <button className="btn btn-primary btn-sm" onClick={this.prevGalleryImage}>
-                            ⬅ Previous
-                          </button>
-                          <button className="btn btn-primary btn-sm" onClick={this.nextGalleryImage}>
+                          <button className="btn btn-primary" onClick={this.nextGalleryImage}>
                             Next ➡️
                           </button>
                         </div>
@@ -859,12 +877,12 @@ class App extends Component<{}, AppState> {
 
           {/* TIC-TAC-TOE GAME TAB */}
           {activeTab === 'game' && (
-            <div className="text-center">
+            <div className="text-center py-2">
               <h3 className="mb-3">Tic-Tac-Toe</h3>
 
-              <div className="card mx-auto mb-4 p-3 shadow-sm" style={{ maxWidth: '320px' }}>
-                <h5 className="card-title text-muted mb-2">Scoreboard</h5>
-                <div className="d-flex justify-content-around align-items-center fs-4 fw-bold">
+              <div className="card mx-auto mb-3 p-2 shadow-sm" style={{ maxWidth: '300px' }}>
+                <h6 className="card-title text-muted mb-2">Scoreboard</h6>
+                <div className="d-flex justify-content-around align-items-center fs-5 fw-bold">
                   <div className="text-primary">
                     Player X: <span className="badge bg-primary">{scoreX}</span>
                   </div>
@@ -874,13 +892,13 @@ class App extends Component<{}, AppState> {
                 </div>
               </div>
 
-              <div className="mb-3 fs-5">
+              <div className="mb-3 fs-6">
                 {winner ? (
-                  <div className="alert alert-success">
-                    🎉 Winner: <strong>Player {winner}</strong> (+1 point!)
+                  <div className="alert alert-success py-2 px-3">
+                    🎉 Winner: <strong>Player {winner}</strong>
                   </div>
                 ) : isBoardFull ? (
-                  <div className="alert alert-warning">It's a Draw!</div>
+                  <div className="alert alert-warning py-2 px-3">It's a Draw!</div>
                 ) : (
                   <div>
                     Next Turn: <strong>Player {xIsNext ? 'X' : 'O'}</strong>
@@ -888,19 +906,21 @@ class App extends Component<{}, AppState> {
                 )}
               </div>
 
+              {/* Mobile Touch Grid */}
               <div
                 className="d-grid mx-auto mb-4"
                 style={{
-                  gridTemplateColumns: 'repeat(3, 80px)',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
                   gap: '8px',
-                  width: '256px',
+                  width: '100%',
+                  maxWidth: '280px',
                 }}
               >
                 {board.map((value, idx) => (
                   <button
                     key={idx}
-                    className="btn btn-outline-dark fw-bold display-6"
-                    style={{ height: '80px', fontSize: '2rem' }}
+                    className="btn btn-outline-dark fw-bold rounded shadow-sm d-flex align-items-center justify-content-center"
+                    style={{ height: '80px', fontSize: '2.2rem' }}
                     onClick={() => this.handleSquareClick(idx)}
                   >
                     {value}
@@ -909,10 +929,10 @@ class App extends Component<{}, AppState> {
               </div>
 
               <div className="d-flex justify-content-center gap-2">
-                <button className="btn btn-secondary" onClick={this.resetGame}>
+                <button className="btn btn-secondary btn-sm px-3" onClick={this.resetGame}>
                   Next Round
                 </button>
-                <button className="btn btn-outline-danger" onClick={this.resetScores}>
+                <button className="btn btn-outline-danger btn-sm px-3" onClick={this.resetScores}>
                   Reset Scores
                 </button>
               </div>
@@ -921,10 +941,10 @@ class App extends Component<{}, AppState> {
 
           {/* ABOUT TAB */}
           {activeTab === 'about' && (
-            <div className="card p-4 shadow-sm">
-              <h3 className="card-title mb-3">About This Application</h3>
-              <p className="card-text">
-                This React application features dynamic tasks, interactive background music and game SFX playback, a 21-image gallery modal viewer with fullscreen mode and mouse-drag panning when zoomed, live clock display, and a full Tic-Tac-Toe game.
+            <div className="card p-3 p-sm-4 shadow-sm">
+              <h4 className="card-title mb-3">About This Application</h4>
+              <p className="card-text text-muted">
+                This touch-friendly, fully responsive React application features dynamic tasks, interactive background music and game SFX, a 21-image gallery viewer with fullscreen mode, mouse & touch-drag panning, live clock, and Tic-Tac-Toe.
               </p>
             </div>
           )}
@@ -932,8 +952,8 @@ class App extends Component<{}, AppState> {
         </main>
 
         {/* Footer */}
-        <footer className="bg-dark text-white text-center py-3 mt-auto">
-          <div className="container">
+        <footer className="bg-dark text-white text-center py-2 mt-auto">
+          <div className="container-fluid">
             <small>&copy; {new Date().getFullYear()} Dinistpn. All rights reserved.</small>
           </div>
         </footer>
