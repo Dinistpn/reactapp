@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-// Interfaces
+// Interfaces for component state and props
 interface Task {
   id: number;
   text: string;
@@ -27,9 +27,15 @@ interface AppState {
   editingTaskId: number | null;
   editingTaskText: string;
 
-  // Gallery Modal & Zoom State
+  // Gallery Modal & Zoom & Pan State
   selectedImgIndex: number | null;
   zoomLevel: number;
+  panX: number;
+  panY: number;
+  isDragging: boolean;
+  dragStartX: number;
+  dragStartY: number;
+  isFullscreen: boolean;
 
   // Music Player State
   currentTrackIndex: number;
@@ -48,8 +54,9 @@ class App extends Component<{}, AppState> {
   private timerID?: NodeJS.Timeout;
   private audioRef: React.RefObject<HTMLAudioElement>;
   private sfxRef: React.RefObject<HTMLAudioElement>;
+  private modalContainerRef: React.RefObject<HTMLDivElement>;
 
-  // Direct Raw URLs for Assets in the `gh-pages` branch
+  // Direct Raw URLs for Assets residing on the gh-pages branch
   rawBranchUrl = 'https://raw.githubusercontent.com/Dinistpn/reactapp/gh-pages';
 
   // Gallery Images 1_img.jpg through 21_img.jpg from gh-pages/img/
@@ -59,7 +66,7 @@ class App extends Component<{}, AppState> {
       id: num,
       title: `Image ${num}`,
       src: `${this.rawBranchUrl}/img/${num}_img.jpg`,
-      alt: `Image ${num}`,
+      alt: `Gallery Photo ${num}`,
     };
   });
 
@@ -90,19 +97,30 @@ class App extends Component<{}, AppState> {
     super(props);
     this.audioRef = React.createRef();
     this.sfxRef = React.createRef();
+    this.modalContainerRef = React.createRef();
+
     this.state = {
       activeTab: 'home',
       currentTime: new Date(),
 
       // Tasks
-      tasks: [],
+      tasks: [
+        { id: 1, text: 'Check out the photo gallery', completed: false },
+        { id: 2, text: 'Play a round of Tic-Tac-Toe', completed: false },
+      ],
       taskInput: '',
       editingTaskId: null,
       editingTaskText: '',
 
-      // Gallery Modal & Zoom
+      // Gallery Modal & Pan / Zoom State
       selectedImgIndex: null,
       zoomLevel: 1,
+      panX: 0,
+      panY: 0,
+      isDragging: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      isFullscreen: false,
 
       // Music Player
       currentTrackIndex: 0,
@@ -122,11 +140,20 @@ class App extends Component<{}, AppState> {
     this.timerID = setInterval(() => {
       this.setState({ currentTime: new Date() });
     }, 1000);
+
+    // Fullscreen change listener
+    document.addEventListener('fullscreenchange', this.handleFullscreenChange);
   }
 
   componentWillUnmount() {
     if (this.timerID) clearInterval(this.timerID);
+    document.removeEventListener('fullscreenchange', this.handleFullscreenChange);
   }
+
+  // Handle browser full screen change
+  handleFullscreenChange = () => {
+    this.setState({ isFullscreen: !!document.fullscreenElement });
+  };
 
   // Helper for triggering SFX
   playSFX = (src: string) => {
@@ -142,7 +169,6 @@ class App extends Component<{}, AppState> {
     this.setState({ activeTab: tab });
   };
 
-  // --- Task Handlers ---
   handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ taskInput: e.target.value });
   };
@@ -205,13 +231,28 @@ class App extends Component<{}, AppState> {
     }));
   };
 
-  // --- Gallery & Zoom Handlers ---
   openGalleryModal = (index: number) => {
-    this.setState({ selectedImgIndex: index, zoomLevel: 1 });
+    this.setState({
+      selectedImgIndex: index,
+      zoomLevel: 1,
+      panX: 0,
+      panY: 0,
+      isDragging: false,
+    });
   };
 
   closeGalleryModal = () => {
-    this.setState({ selectedImgIndex: null, zoomLevel: 1 });
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+    this.setState({
+      selectedImgIndex: null,
+      zoomLevel: 1,
+      panX: 0,
+      panY: 0,
+      isDragging: false,
+      isFullscreen: false,
+    });
   };
 
   prevGalleryImage = () => {
@@ -221,7 +262,7 @@ class App extends Component<{}, AppState> {
         prevState.selectedImgIndex === 0
           ? this.galleryImages.length - 1
           : prevState.selectedImgIndex - 1;
-      return { selectedImgIndex: newIndex, zoomLevel: 1 };
+      return { selectedImgIndex: newIndex, zoomLevel: 1, panX: 0, panY: 0 };
     });
   };
 
@@ -230,27 +271,72 @@ class App extends Component<{}, AppState> {
       if (prevState.selectedImgIndex === null) return null;
       const newIndex =
         (prevState.selectedImgIndex + 1) % this.galleryImages.length;
-      return { selectedImgIndex: newIndex, zoomLevel: 1 };
+      return { selectedImgIndex: newIndex, zoomLevel: 1, panX: 0, panY: 0 };
     });
   };
 
   zoomIn = () => {
     this.setState((prevState) => ({
-      zoomLevel: Math.min(prevState.zoomLevel + 0.25, 3),
+      zoomLevel: Math.min(prevState.zoomLevel + 0.5, 4),
     }));
   };
 
   zoomOut = () => {
-    this.setState((prevState) => ({
-      zoomLevel: Math.max(prevState.zoomLevel - 0.25, 0.5),
-    }));
+    this.setState((prevState) => {
+      const nextZoom = Math.max(prevState.zoomLevel - 0.5, 1);
+      // Reset pan if zoomed back to 1
+      return {
+        zoomLevel: nextZoom,
+        panX: nextZoom === 1 ? 0 : prevState.panX,
+        panY: nextZoom === 1 ? 0 : prevState.panY,
+      };
+    });
   };
 
   resetZoom = () => {
-    this.setState({ zoomLevel: 1 });
+    this.setState({ zoomLevel: 1, panX: 0, panY: 0 });
   };
 
-  // --- Audio Player Handlers ---
+  toggleFullscreen = () => {
+    if (!this.modalContainerRef.current) return;
+
+    if (!document.fullscreenElement) {
+      this.modalContainerRef.current.requestFullscreen().catch((err) => {
+        console.error('Fullscreen request error:', err);
+      });
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
+  // Mouse drag handlers for panning zoomed images
+  handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
+    if (this.state.zoomLevel > 1) {
+      e.preventDefault();
+      this.setState({
+        isDragging: true,
+        dragStartX: e.clientX - this.state.panX,
+        dragStartY: e.clientY - this.state.panY,
+      });
+    }
+  };
+
+  handleMouseMove = (e: React.MouseEvent<HTMLImageElement>) => {
+    if (this.state.isDragging && this.state.zoomLevel > 1) {
+      e.preventDefault();
+      this.setState({
+        panX: e.clientX - this.state.dragStartX,
+        panY: e.clientY - this.state.dragStartY,
+      });
+    }
+  };
+
+  handleMouseUpOrLeave = () => {
+    if (this.state.isDragging) {
+      this.setState({ isDragging: false });
+    }
+  };
+
   togglePlayPause = () => {
     const audio = this.audioRef.current;
     if (!audio) return;
@@ -264,7 +350,7 @@ class App extends Component<{}, AppState> {
         .then(() => {
           this.setState({ isPlaying: true });
         })
-        .catch((err) => console.log('Audio error:', err));
+        .catch((err) => console.log('Audio playback error:', err));
     }
   };
 
@@ -285,13 +371,12 @@ class App extends Component<{}, AppState> {
     });
   };
 
-  // --- Tic-Tac-Toe Handlers ---
   handleSquareClick = (index: number) => {
     const { board, xIsNext, gameHasEnded } = this.state;
 
     if (board[index] || gameHasEnded) return;
 
-    // Trigger click sound effect (mouseclick1.wav)
+    // Trigger mouse click SFX
     this.playSFX(this.sfx.click);
 
     const newBoard = board.slice();
@@ -309,11 +394,11 @@ class App extends Component<{}, AppState> {
         isEnded = true;
         if (winner === 'X') updatedScoreX += 1;
         if (winner === 'O') updatedScoreO += 1;
-        // Trigger game over sound effect (game-over.mp3)
+        // Game Over sound effect
         this.playSFX(this.sfx.gameOver);
       } else if (newBoard.every((square) => square !== null)) {
         isEnded = true;
-        // Trigger game over sound effect on draw
+        // Draw sound effect
         this.playSFX(this.sfx.gameOver);
       }
 
@@ -328,7 +413,7 @@ class App extends Component<{}, AppState> {
   };
 
   resetGame = () => {
-    // Trigger preparing sound effect (preparing-the-match.mp3)
+    // Play preparing match sound effect
     this.playSFX(this.sfx.preparing);
 
     this.setState({
@@ -375,6 +460,10 @@ class App extends Component<{}, AppState> {
       editingTaskText,
       selectedImgIndex,
       zoomLevel,
+      panX,
+      panY,
+      isDragging,
+      isFullscreen,
       currentTrackIndex,
       isPlaying,
       volume,
@@ -449,7 +538,7 @@ class App extends Component<{}, AppState> {
           </div>
         </nav>
 
-        {/* Music Player Bar */}
+        {/* Music Player Control Bar */}
         <div className="bg-secondary text-white py-2 shadow-sm">
           <div className="container d-flex flex-wrap justify-content-between align-items-center">
             <div className="d-flex align-items-center gap-2">
@@ -465,7 +554,7 @@ class App extends Component<{}, AppState> {
               >
                 {this.bgMusicTracks.map((track, idx) => (
                   <option key={track.id} value={idx}>
-                    {track.title} (1.m4a / 2.m4a)
+                    {track.title} ({track.src.split('/').pop()})
                   </option>
                 ))}
               </select>
@@ -495,7 +584,7 @@ class App extends Component<{}, AppState> {
           </div>
         </div>
 
-        {/* Main Section */}
+        {/* Main Application Container */}
         <main className="container my-4 flex-grow-1" style={{ maxWidth: '850px' }}>
           
           {/* HOME TAB */}
@@ -503,7 +592,7 @@ class App extends Component<{}, AppState> {
             <div className="text-center py-5">
               <h1 className="display-4 fw-bold mb-3">Hello world!</h1>
               
-              {/* Live Clock */}
+              {/* Live Clock Component */}
               <div className="card mx-auto my-4 p-3 shadow-sm bg-dark text-white" style={{ maxWidth: '300px' }}>
                 <small className="text-muted text-uppercase tracking-wide">Current Time</small>
                 <h2 className="fw-mono mt-1 mb-0">{currentTime.toLocaleTimeString()}</h2>
@@ -511,7 +600,7 @@ class App extends Component<{}, AppState> {
               </div>
 
               <p className="lead text-muted">
-                Welcome to the React application. Use the navigation bar above to manage tasks, browse photos, listen to background music, or play Tic-Tac-Toe!
+                Welcome to the application. Use the navigation bar above to manage tasks, browse photos, listen to music, or play Tic-Tac-Toe!
               </p>
             </div>
           )}
@@ -640,11 +729,13 @@ class App extends Component<{}, AppState> {
             </div>
           )}
 
-          {/* GALLERY TAB */}
+          {}
           {activeTab === 'gallery' && (
             <div>
-              <h3 className="mb-4 text-center">Repository Photo Gallery (21 Images)</h3>
-              <p className="text-center text-muted small">Click any image to expand, navigate, and zoom.</p>
+              <h3 className="mb-2 text-center">Repository Photo Gallery (21 Images)</h3>
+              <p className="text-center text-muted small mb-4">
+                Click any image to expand. Zoom in to enable mouse drag panning or toggle full-screen mode!
+              </p>
 
               <div className="row g-3">
                 {this.galleryImages.map((img, idx) => (
@@ -672,14 +763,15 @@ class App extends Component<{}, AppState> {
                 ))}
               </div>
 
-              {/* Gallery Lightbox Modal */}
+              {/* Lightbox / Modal with Zoom, Drag & Fullscreen Capabilities */}
               {selectedImgIndex !== null && (
                 <div
+                  ref={this.modalContainerRef}
                   className="modal show d-block"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1050 }}
+                  style={{ backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 1050 }}
                 >
-                  <div className="modal-dialog modal-dialog-centered modal-lg">
-                    <div className="modal-content bg-dark text-white border-0">
+                  <div className={`modal-dialog modal-dialog-centered ${isFullscreen ? 'modal-fullscreen' : 'modal-lg'}`}>
+                    <div className="modal-content bg-dark text-white border-0 h-100">
                       <div className="modal-header border-secondary">
                         <h5 className="modal-title">
                           {this.galleryImages[selectedImgIndex].title} ({selectedImgIndex + 1}/{this.galleryImages.length})
@@ -691,20 +783,36 @@ class App extends Component<{}, AppState> {
                         ></button>
                       </div>
 
-                      <div className="modal-body text-center overflow-hidden" style={{ minHeight: '350px' }}>
+                      {/* Modal Body with Pan / Drag Mouse Listeners */}
+                      <div
+                        className="modal-body text-center overflow-hidden d-flex align-items-center justify-content-center position-relative"
+                        style={{
+                          minHeight: '400px',
+                          maxHeight: isFullscreen ? 'calc(100vh - 120px)' : '65vh',
+                          userSelect: 'none',
+                        }}
+                      >
                         <img
                           src={this.galleryImages[selectedImgIndex].src}
                           alt={this.galleryImages[selectedImgIndex].alt}
                           className="img-fluid"
                           style={{
-                            transform: `scale(${zoomLevel})`,
-                            maxHeight: '60vh',
-                            transition: 'transform 0.2s ease-in-out',
+                            transform: `translate(${panX}px, ${panY}px) scale(${zoomLevel})`,
+                            maxHeight: isFullscreen ? '90vh' : '55vh',
+                            cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
+                            transition: isDragging ? 'none' : 'transform 0.2s ease-out',
                           }}
+                          onMouseDown={this.handleMouseDown}
+                          onMouseMove={this.handleMouseMove}
+                          onMouseUp={this.handleMouseUpOrLeave}
+                          onMouseLeave={this.handleMouseUpOrLeave}
+                          draggable={false}
                         />
                       </div>
 
-                      <div className="modal-footer border-secondary justify-content-between">
+                      {/* Controls Toolbar */}
+                      <div className="modal-footer border-secondary justify-content-between flex-wrap gap-2">
+                        {/* Zoom Controls */}
                         <div className="btn-group">
                           <button className="btn btn-outline-light btn-sm" onClick={this.zoomIn}>
                             🔍 Zoom In (+)
@@ -717,6 +825,22 @@ class App extends Component<{}, AppState> {
                           </button>
                         </div>
 
+                        {/* Fullscreen & Drag Helper Indicator */}
+                        <div className="d-flex align-items-center gap-2">
+                          {zoomLevel > 1 && (
+                            <span className="badge bg-info text-dark">
+                              🖱️ Drag with mouse to pan
+                            </span>
+                          )}
+                          <button
+                            className={`btn btn-sm ${isFullscreen ? 'btn-warning' : 'btn-outline-info'}`}
+                            onClick={this.toggleFullscreen}
+                          >
+                            {isFullscreen ? '📉 Exit Fullscreen' : '⛶ Fullscreen'}
+                          </button>
+                        </div>
+
+                        {/* Navigation Controls */}
                         <div className="btn-group">
                           <button className="btn btn-primary btn-sm" onClick={this.prevGalleryImage}>
                             ⬅ Previous
@@ -800,7 +924,7 @@ class App extends Component<{}, AppState> {
             <div className="card p-4 shadow-sm">
               <h3 className="card-title mb-3">About This Application</h3>
               <p className="card-text">
-                This React application features dynamic tasks, interactive background music and game SFX playback, a 21-image gallery modal viewer with navigation and zoom capabilities, live clock display, and a full Tic-Tac-Toe game.
+                This React application features dynamic tasks, interactive background music and game SFX playback, a 21-image gallery modal viewer with fullscreen mode and mouse-drag panning when zoomed, live clock display, and a full Tic-Tac-Toe game.
               </p>
             </div>
           )}
