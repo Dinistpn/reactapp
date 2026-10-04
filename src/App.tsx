@@ -54,19 +54,16 @@ class App extends Component<{}, AppState> {
   private sfxRef: React.RefObject<HTMLAudioElement>;
   private modalContainerRef: React.RefObject<HTMLDivElement>;
 
-  // Direct URL for assets hosted on GitHub Pages
+  // Direct Raw URLs for sound files in the gh-pages branch
   rawBranchUrl = 'https://dinistpn.github.io/reactapp';
 
-  // Gallery Images with gh-pages fallback
+  // Gallery Images 1_img.jpg through 26_img.jpg pointing directly to img/ folder
   galleryImages = Array.from({ length: 26 }, (_, index) => {
     const num = index + 1;
-    const publicUrl = process.env.PUBLIC_URL || '';
-    const imagePath = `/img/${num}_img.jpg`;
-    
     return {
       id: num,
       title: `Image ${num}`,
-      src: publicUrl ? `${publicUrl}${imagePath}` : `${this.rawBranchUrl}${imagePath}`,
+      src: `img/${num}_img.jpg`,
       alt: `Image ${num}`,
     };
   });
@@ -784,10 +781,6 @@ class App extends Component<{}, AppState> {
                           src={img.src}
                           className="card-img-top mh-100 mw-100 object-fit-cover"
                           alt={img.alt}
-                          onError={(e) => {
-                            // Fallback in case process.env.PUBLIC_URL fails
-                            (e.target as HTMLImageElement).src = `${this.rawBranchUrl}/img/${img.id}_img.jpg`;
-                          }}
                         />
                       </div>
                       <div className="card-body p-2 text-center bg-white">
@@ -841,9 +834,6 @@ class App extends Component<{}, AppState> {
                           alt={this.galleryImages[selectedImgIndex].alt}
                           onMouseDown={this.handleMouseDown}
                           onTouchStart={this.handleTouchStart}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = `${this.rawBranchUrl}/img/${selectedImgIndex + 1}_img.jpg`;
-                          }}
                           style={{
                             transform: `translate(${position.x}px, ${position.y}px) scale(${zoomLevel})`,
                             maxHeight: '100%',
