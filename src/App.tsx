@@ -49,38 +49,41 @@ class App extends Component<{}, AppState> {
   private audioRef: React.RefObject<HTMLAudioElement>;
   private sfxRef: React.RefObject<HTMLAudioElement>;
 
-  // Dynamically generated gallery images from 1_img.jpg to 21_img.jpg
+  // Direct Raw URLs for Assets in the `gh-pages` branch
+  rawBranchUrl = 'https://raw.githubusercontent.com/Dinistpn/reactapp/gh-pages';
+
+  // Gallery Images 1_img.jpg through 21_img.jpg from gh-pages/img/
   galleryImages = Array.from({ length: 21 }, (_, index) => {
     const num = index + 1;
     return {
       id: num,
       title: `Image ${num}`,
-      src: `${process.env.PUBLIC_URL}/img/${num}_img.jpg`,
+      src: `${this.rawBranchUrl}/img/${num}_img.jpg`,
       alt: `Image ${num}`,
     };
   });
 
-  // Background Music tracks (1.m4a and 2.m4a)
+  // Background Musics 1.m4a and 2.m4a from gh-pages/sound/
   bgMusicTracks: AudioTrack[] = [
     {
       id: 1,
       title: 'Track 1',
-      artist: 'Repository Audio',
-      src: process.env.PUBLIC_URL + '/sound/1.m4a',
+      artist: 'Repository Track',
+      src: `${this.rawBranchUrl}/sound/1.m4a`,
     },
     {
       id: 2,
       title: 'Track 2',
-      artist: 'Repository Audio',
-      src: process.env.PUBLIC_URL + '/sound/2.m4a',
+      artist: 'Repository Track',
+      src: `${this.rawBranchUrl}/sound/2.m4a`,
     },
   ];
 
-  // Game sound effects
+  // Game SFX from gh-pages/sound/
   sfx = {
-    click: process.env.PUBLIC_URL + '/sound/mouseclick1.wav',
-    preparing: process.env.PUBLIC_URL + '/sound/preparing-the-match.mp3',
-    gameOver: process.env.PUBLIC_URL + '/sound/game-over.mp3',
+    click: `${this.rawBranchUrl}/sound/mouseclick1.wav`,
+    preparing: `${this.rawBranchUrl}/sound/preparing-the-match.mp3`,
+    gameOver: `${this.rawBranchUrl}/sound/game-over.mp3`,
   };
 
   constructor(props: {}) {
@@ -125,12 +128,12 @@ class App extends Component<{}, AppState> {
     if (this.timerID) clearInterval(this.timerID);
   }
 
-  // Play sound effect helper
+  // Helper for triggering SFX
   playSFX = (src: string) => {
     if (this.sfxRef.current) {
       this.sfxRef.current.src = src;
       this.sfxRef.current.volume = this.state.volume;
-      this.sfxRef.current.play().catch((err) => console.log('SFX play error:', err));
+      this.sfxRef.current.play().catch((err) => console.log('SFX Playback Error:', err));
     }
   };
 
@@ -261,7 +264,7 @@ class App extends Component<{}, AppState> {
         .then(() => {
           this.setState({ isPlaying: true });
         })
-        .catch((err) => console.log('Audio playback error:', err));
+        .catch((err) => console.log('Audio error:', err));
     }
   };
 
@@ -288,7 +291,7 @@ class App extends Component<{}, AppState> {
 
     if (board[index] || gameHasEnded) return;
 
-    // Play click sound effect (mouseclick1.wav)
+    // Trigger click sound effect (mouseclick1.wav)
     this.playSFX(this.sfx.click);
 
     const newBoard = board.slice();
@@ -306,11 +309,11 @@ class App extends Component<{}, AppState> {
         isEnded = true;
         if (winner === 'X') updatedScoreX += 1;
         if (winner === 'O') updatedScoreO += 1;
-        // Play Game Over sound effect (game-over.mp3)
+        // Trigger game over sound effect (game-over.mp3)
         this.playSFX(this.sfx.gameOver);
       } else if (newBoard.every((square) => square !== null)) {
         isEnded = true;
-        // Play Game Over sound effect on draw
+        // Trigger game over sound effect on draw
         this.playSFX(this.sfx.gameOver);
       }
 
@@ -325,7 +328,7 @@ class App extends Component<{}, AppState> {
   };
 
   resetGame = () => {
-    // Play preparing match sound effect (preparing-the-match.mp3)
+    // Trigger preparing sound effect (preparing-the-match.mp3)
     this.playSFX(this.sfx.preparing);
 
     this.setState({
@@ -455,7 +458,6 @@ class App extends Component<{}, AppState> {
             </div>
 
             <div className="d-flex align-items-center gap-3">
-              {/* Music Selection (1.m4a and 2.m4a) */}
               <select
                 className="form-select form-select-sm bg-dark text-white border-0"
                 value={currentTrackIndex}
@@ -463,7 +465,7 @@ class App extends Component<{}, AppState> {
               >
                 {this.bgMusicTracks.map((track, idx) => (
                   <option key={track.id} value={idx}>
-                    {track.title} ({track.src.split('/').pop()})
+                    {track.title} (1.m4a / 2.m4a)
                   </option>
                 ))}
               </select>
@@ -496,12 +498,12 @@ class App extends Component<{}, AppState> {
         {/* Main Section */}
         <main className="container my-4 flex-grow-1" style={{ maxWidth: '850px' }}>
           
-          {/* HOME TAB WITH TIME */}
+          {/* HOME TAB */}
           {activeTab === 'home' && (
             <div className="text-center py-5">
               <h1 className="display-4 fw-bold mb-3">Hello world!</h1>
               
-              {/* Live Time Clock */}
+              {/* Live Clock */}
               <div className="card mx-auto my-4 p-3 shadow-sm bg-dark text-white" style={{ maxWidth: '300px' }}>
                 <small className="text-muted text-uppercase tracking-wide">Current Time</small>
                 <h2 className="fw-mono mt-1 mb-0">{currentTime.toLocaleTimeString()}</h2>
@@ -638,7 +640,7 @@ class App extends Component<{}, AppState> {
             </div>
           )}
 
-          {/* GALLERY TAB (1_img.jpg through 21_img.jpg) */}
+          {/* GALLERY TAB */}
           {activeTab === 'gallery' && (
             <div>
               <h3 className="mb-4 text-center">Repository Photo Gallery (21 Images)</h3>
