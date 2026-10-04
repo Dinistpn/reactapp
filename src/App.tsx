@@ -49,35 +49,36 @@ class App extends Component<{}, AppState> {
   private audioRef: React.RefObject<HTMLAudioElement>;
   private sfxRef: React.RefObject<HTMLAudioElement>;
 
-  // Images from https://github.com/Dinistpn/reactapp/tree/gh-pages/img
-  galleryImages = [
-    { id: 1, title: 'Image 1', src: process.env.PUBLIC_URL + '/img/1.jpg', alt: 'Image 1' },
-    { id: 2, title: 'Image 2', src: process.env.PUBLIC_URL + '/img/2.jpg', alt: 'Image 2' },
-    { id: 3, title: 'Image 3', src: process.env.PUBLIC_URL + '/img/3.jpg', alt: 'Image 3' },
-    { id: 4, title: 'Image 4', src: process.env.PUBLIC_URL + '/img/4.jpg', alt: 'Image 4' },
-    { id: 5, title: 'Image 5', src: process.env.PUBLIC_URL + '/img/5.jpg', alt: 'Image 5' },
-    { id: 6, title: 'Image 6', src: process.env.PUBLIC_URL + '/img/6.jpg', alt: 'Image 6' },
-  ];
+  // Dynamically generated gallery images from 1_img.jpg to 21_img.jpg
+  galleryImages = Array.from({ length: 21 }, (_, index) => {
+    const num = index + 1;
+    return {
+      id: num,
+      title: `Image ${num}`,
+      src: `${process.env.PUBLIC_URL}/img/${num}_img.jpg`,
+      alt: `Image ${num}`,
+    };
+  });
 
-  // First 2 Background Musics from https://github.com/Dinistpn/reactapp/tree/gh-pages/sound
+  // Background Music tracks (1.m4a and 2.m4a)
   bgMusicTracks: AudioTrack[] = [
     {
       id: 1,
-      title: 'Background Music 1',
-      artist: 'Repository Track',
-      src: process.env.PUBLIC_URL + '/sound/bgm.mp3',
+      title: 'Track 1',
+      artist: 'Repository Audio',
+      src: process.env.PUBLIC_URL + '/sound/1.m4a',
     },
     {
       id: 2,
-      title: 'Background Music 2',
-      artist: 'Repository Track',
-      src: process.env.PUBLIC_URL + '/sound/bgm2.mp3',
+      title: 'Track 2',
+      artist: 'Repository Audio',
+      src: process.env.PUBLIC_URL + '/sound/2.m4a',
     },
   ];
 
-  // Sound Effects
+  // Game sound effects
   sfx = {
-    click: process.env.PUBLIC_URL + '/sound/mouse-click.mp3',
+    click: process.env.PUBLIC_URL + '/sound/mouseclick1.wav',
     preparing: process.env.PUBLIC_URL + '/sound/preparing-the-match.mp3',
     gameOver: process.env.PUBLIC_URL + '/sound/game-over.mp3',
   };
@@ -124,12 +125,12 @@ class App extends Component<{}, AppState> {
     if (this.timerID) clearInterval(this.timerID);
   }
 
-  // Play a specific sound effect
+  // Play sound effect helper
   playSFX = (src: string) => {
     if (this.sfxRef.current) {
       this.sfxRef.current.src = src;
       this.sfxRef.current.volume = this.state.volume;
-      this.sfxRef.current.play().catch((err) => console.log('SFX Play error:', err));
+      this.sfxRef.current.play().catch((err) => console.log('SFX play error:', err));
     }
   };
 
@@ -255,9 +256,12 @@ class App extends Component<{}, AppState> {
       audio.pause();
       this.setState({ isPlaying: false });
     } else {
-      audio.play().then(() => {
-        this.setState({ isPlaying: true });
-      }).catch((err) => console.log('Audio error:', err));
+      audio
+        .play()
+        .then(() => {
+          this.setState({ isPlaying: true });
+        })
+        .catch((err) => console.log('Audio playback error:', err));
     }
   };
 
@@ -284,7 +288,7 @@ class App extends Component<{}, AppState> {
 
     if (board[index] || gameHasEnded) return;
 
-    // Play mouse click sound effect on click
+    // Play click sound effect (mouseclick1.wav)
     this.playSFX(this.sfx.click);
 
     const newBoard = board.slice();
@@ -302,7 +306,7 @@ class App extends Component<{}, AppState> {
         isEnded = true;
         if (winner === 'X') updatedScoreX += 1;
         if (winner === 'O') updatedScoreO += 1;
-        // Play Game Over sound effect when a player wins
+        // Play Game Over sound effect (game-over.mp3)
         this.playSFX(this.sfx.gameOver);
       } else if (newBoard.every((square) => square !== null)) {
         isEnded = true;
@@ -321,7 +325,7 @@ class App extends Component<{}, AppState> {
   };
 
   resetGame = () => {
-    // Play preparing match sound effect when starting next round
+    // Play preparing match sound effect (preparing-the-match.mp3)
     this.playSFX(this.sfx.preparing);
 
     this.setState({
@@ -442,7 +446,7 @@ class App extends Component<{}, AppState> {
           </div>
         </nav>
 
-        {/* Music Player Header Bar */}
+        {/* Music Player Bar */}
         <div className="bg-secondary text-white py-2 shadow-sm">
           <div className="container d-flex flex-wrap justify-content-between align-items-center">
             <div className="d-flex align-items-center gap-2">
@@ -451,7 +455,7 @@ class App extends Component<{}, AppState> {
             </div>
 
             <div className="d-flex align-items-center gap-3">
-              {/* Select between first 2 musics */}
+              {/* Music Selection (1.m4a and 2.m4a) */}
               <select
                 className="form-select form-select-sm bg-dark text-white border-0"
                 value={currentTrackIndex}
@@ -459,7 +463,7 @@ class App extends Component<{}, AppState> {
               >
                 {this.bgMusicTracks.map((track, idx) => (
                   <option key={track.id} value={idx}>
-                    {track.title}
+                    {track.title} ({track.src.split('/').pop()})
                   </option>
                 ))}
               </select>
@@ -497,7 +501,7 @@ class App extends Component<{}, AppState> {
             <div className="text-center py-5">
               <h1 className="display-4 fw-bold mb-3">Hello world!</h1>
               
-              {/* Live Time Display */}
+              {/* Live Time Clock */}
               <div className="card mx-auto my-4 p-3 shadow-sm bg-dark text-white" style={{ maxWidth: '300px' }}>
                 <small className="text-muted text-uppercase tracking-wide">Current Time</small>
                 <h2 className="fw-mono mt-1 mb-0">{currentTime.toLocaleTimeString()}</h2>
@@ -634,11 +638,11 @@ class App extends Component<{}, AppState> {
             </div>
           )}
 
-          {/* GALLERY TAB */}
+          {/* GALLERY TAB (1_img.jpg through 21_img.jpg) */}
           {activeTab === 'gallery' && (
             <div>
-              <h3 className="mb-4 text-center">Repository Photo Gallery</h3>
-              <p className="text-center text-muted small">Click any image to view, navigate, and zoom.</p>
+              <h3 className="mb-4 text-center">Repository Photo Gallery (21 Images)</h3>
+              <p className="text-center text-muted small">Click any image to expand, navigate, and zoom.</p>
 
               <div className="row g-3">
                 {this.galleryImages.map((img, idx) => (
@@ -666,7 +670,7 @@ class App extends Component<{}, AppState> {
                 ))}
               </div>
 
-              {/* Gallery Modal Viewer */}
+              {/* Gallery Lightbox Modal */}
               {selectedImgIndex !== null && (
                 <div
                   className="modal show d-block"
@@ -794,7 +798,7 @@ class App extends Component<{}, AppState> {
             <div className="card p-4 shadow-sm">
               <h3 className="card-title mb-3">About This Application</h3>
               <p className="card-text">
-                This is a React TypeScript application built with Bootstrap. It includes dynamic task management with bulk deletion, an image gallery pointing directly to repository image files, background audio controls, game sound effects, and a Tic-Tac-Toe game with scoreboard tracking.
+                This React application features dynamic tasks, interactive background music and game SFX playback, a 21-image gallery modal viewer with navigation and zoom capabilities, live clock display, and a full Tic-Tac-Toe game.
               </p>
             </div>
           )}
