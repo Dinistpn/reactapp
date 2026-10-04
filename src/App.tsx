@@ -55,18 +55,18 @@ class App extends Component<{}, AppState> {
   private modalContainerRef: React.RefObject<HTMLDivElement>;
 
   // Direct Raw URLs for Assets in the gh-pages branch
-  rawBranchUrl = 'https://raw.githubusercontent.com/Dinistpn/reactapp/gh-pages';
+  rawBranchUrl = 'https://dinistpn.github.io/reactapp';
 
   // Gallery Images 1_img.jpg through 26_img.jpg
   galleryImages = Array.from({ length: 26 }, (_, index) => {
-    const num = index + 1;
-    return {
-      id: num,
-      title: `Image ${num}`,
-      src: `${this.rawBranchUrl}/img/${num}_img.jpg`,
-      alt: `Image ${num}`,
-    };
-  });
+  const num = index + 1;
+  return {
+    id: num,
+    title: `Image ${num}`,
+    src: `${process.env.PUBLIC_URL}/img/${num}_img.jpg`,
+    alt: `Image ${num}`,
+  };
+});
 
   // Background Musics 1.m4a and 2.m4a
   bgMusicTracks: AudioTrack[] = [
