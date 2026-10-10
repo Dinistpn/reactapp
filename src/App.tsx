@@ -1,3 +1,4 @@
+
 import React, { Component } from 'react';
 
 // Interfaces
@@ -14,33 +15,49 @@ interface AudioTrack {
   src: string;
 }
 
-interface AppState {
-  // Navigation State
-  activeTab: 'home' | 'tasks' | 'gallery' | 'game' | 'about';
-  navMenuOpen: boolean;
+type TabName = 'home' | 'tasks' | 'gallery' | 'game' | 'about';
 
-  // Live Time
+interface GalleryImageData {
+  id: number;
+  title: string;
+  description: string;
+  fileName: string;
+  src: string;
+  alt: string;
+}
+
+class GalleryImage implements GalleryImageData {
+  constructor(
+    public id: number,
+    public title: string,
+    public description: string,
+    public fileName: string,
+    public src: string,
+    public alt: string
+  ) {}
+}
+
+interface AppState {
+  activeTab: TabName;
+  navMenuOpen: boolean;
   currentTime: Date;
 
-  // Task State
   tasks: Task[];
   taskInput: string;
   editingTaskId: number | null;
   editingTaskText: string;
 
-  // Gallery Modal, Zoom & Drag State
   selectedImgIndex: number | null;
   zoomLevel: number;
   isDragging: boolean;
   dragStart: { x: number; y: number };
   position: { x: number; y: number };
+  hiddenDescriptionIds: number[];
 
-  // Music Player State
   currentTrackIndex: number;
   isPlaying: boolean;
   volume: number;
 
-  // Tic-Tac-Toe State
   board: (string | null)[];
   xIsNext: boolean;
   scoreX: number;
@@ -49,27 +66,141 @@ interface AppState {
 }
 
 class App extends Component<{}, AppState> {
-  private timerID?: NodeJS.Timeout;
+  private timerID?: ReturnType<typeof setInterval>;
   private audioRef: React.RefObject<HTMLAudioElement>;
   private sfxRef: React.RefObject<HTMLAudioElement>;
   private modalContainerRef: React.RefObject<HTMLDivElement>;
 
-  // Base URL helper
   baseUrl = process.env.PUBLIC_URL || '.';
 
-  // Gallery Images 1 through 26 using relative ./img/ paths
-  galleryImages = Array.from({ length: 26 }, (_, index) => {
-    const num = index + 1;
-    return {
-      id: num,
-      title: `Image ${num}`,
-      fileName: `${num}_img.jpg`,
-      src: `${this.baseUrl}/img/${num}_img.jpg`,
-      alt: `Image ${num}`,
-    };
-  });
+  // Gallery titles and descriptions
+  private galleryDetails: {
+    title: string;
+    description: string;
+  }[] = [
+    {
+      title: 'Venice',
+      description: 'A beautiful view from Venice.',
+    },
+    {
+      title: 'Praia da Barra',
+      description: 'View from Pier in Portugal beach.',
+    },
+    {
+      title: 'Warsaw',
+      description:
+        'One of the most iconic buildings in the Capital of Poland, despite the past.',
+    },
+    {
+      title: 'Praia da Barra',
+      description: 'View from the beach in Portugal.',
+    },
+    {
+      title: 'Mountain Landscape',
+      description: 'Oil painting with mountains.',
+    },
+    {
+      title: 'Bay',
+      description: 'Artistic oil painting of an imaginary bay.',
+    },
+    {
+      title: 'View from ruins',
+      description: 'Painting of old ruins.',
+    },
+    {
+      title: 'Bay from the top',
+      description: 'Oil painting of a bay from the top.',
+    },
+    {
+      title: 'Venice Lagoon Island',
+      description: 'An island in the lagoon of Venice.',
+    },
+    {
+      title: 'Oriental',
+      description: 'Oil painting of an old ruin.',
+    },
+    {
+      title: 'Mountain',
+      description: 'A beautiful view of the mountains at sunset.',
+    },
+    {
+      title: 'Mountains passage',
+      description: 'A beautiful view of a mountain passage.',
+    },
+    {
+      title: 'Mountain Landscape',
+      description: 'A beautiful view of the mountains at sunset.',
+    },
+    {
+      title: 'City at Night',
+      description: 'A city skyline illuminated after dark.',
+    },
+    {
+      title: 'Mountain Landscape',
+      description: 'A beautiful view of the mountains at sunset.',
+    },
+    {
+      title: 'City at Night',
+      description: 'A city skyline illuminated after dark.',
+    },
+    {
+      title: 'Mountain Landscape',
+      description: 'A beautiful view of the mountains at sunset.',
+    },
+    {
+      title: 'City at Night',
+      description: 'A city skyline illuminated after dark.',
+    },
+    {
+      title: 'Mountain Landscape',
+      description: 'A beautiful view of the mountains at sunset.',
+    },
+    {
+      title: 'City at Night',
+      description: 'A city skyline illuminated after dark.',
+    },
+    {
+      title: 'Mountain Landscape',
+      description: 'A beautiful view of the mountains at sunset.',
+    },
+    {
+      title: 'City at Night',
+      description: 'A city skyline illuminated after dark.',
+    },
+    {
+      title: 'Mountain Landscape',
+      description: 'A beautiful view of the mountains at sunset.',
+    },
+    {
+      title: 'City at Night',
+      description: 'A city skyline illuminated after dark.',
+    },
+    {
+      title: 'Mountain Landscape',
+      description: 'A beautiful view of the mountains at sunset.',
+    },
+    {
+      title: 'City at Night',
+      description: 'A city skyline illuminated after dark.',
+    },
+  ];
 
-  // Background Musics
+  galleryImages: GalleryImage[] = this.galleryDetails.map(
+    (details, index) => {
+      const num = index + 1;
+      const fileName = `${num}_img.jpg`;
+
+      return new GalleryImage(
+        num,
+        details.title,
+        details.description,
+        fileName,
+        `${this.baseUrl}/img/${fileName}`,
+        details.title
+      );
+    }
+  );
+
   bgMusicTracks: AudioTrack[] = [
     {
       id: 1,
@@ -85,7 +216,6 @@ class App extends Component<{}, AppState> {
     },
   ];
 
-  // Game SFX
   sfx = {
     click: `${this.baseUrl}/sound/mouseclick1.wav`,
     preparing: `${this.baseUrl}/sound/preparing-the-match.mp3`,
@@ -94,35 +224,33 @@ class App extends Component<{}, AppState> {
 
   constructor(props: {}) {
     super(props);
-    this.audioRef = React.createRef();
-    this.sfxRef = React.createRef();
-    this.modalContainerRef = React.createRef();
+
+    this.audioRef = React.createRef<HTMLAudioElement>();
+    this.sfxRef = React.createRef<HTMLAudioElement>();
+    this.modalContainerRef = React.createRef<HTMLDivElement>();
 
     this.state = {
       activeTab: 'home',
       navMenuOpen: false,
       currentTime: new Date(),
 
-      // Tasks
       tasks: [],
       taskInput: '',
       editingTaskId: null,
       editingTaskText: '',
 
-      // Gallery Modal & Zoom & Drag
       selectedImgIndex: null,
       zoomLevel: 1,
       isDragging: false,
       dragStart: { x: 0, y: 0 },
       position: { x: 0, y: 0 },
+      hiddenDescriptionIds: [],
 
-      // Music Player
       currentTrackIndex: 0,
       isPlaying: false,
       volume: 0.8,
 
-      // Tic-Tac-Toe
-      board: Array(9).fill(null),
+      board: Array(25).fill(null),
       xIsNext: true,
       scoreX: 0,
       scoreO: 0,
@@ -130,7 +258,48 @@ class App extends Component<{}, AppState> {
     };
   }
 
+  private getBasePath = () => {
+    const publicUrl = process.env.PUBLIC_URL;
+    return publicUrl && publicUrl !== '.'
+      ? publicUrl.replace(/\/$/, '')
+      : '';
+  };
+
+  private tabToPath = (tab: TabName) => {
+    const basePath = this.getBasePath();
+    const route = tab === 'home' ? '/' : `/${tab}`;
+    return `${basePath}${route}`;
+  };
+
+  private handlePopState = () => {
+    const basePath = this.getBasePath();
+    let path = window.location.pathname;
+
+    if (basePath && path.startsWith(basePath)) {
+      path = path.slice(basePath.length) || '/';
+    }
+
+    path = path.replace(/\/+$/, '') || '/';
+
+    const routes: Record<string, TabName> = {
+      '/': 'home',
+      '/home': 'home',
+      '/tasks': 'tasks',
+      '/gallery': 'gallery',
+      '/game': 'game',
+      '/about': 'about',
+    };
+
+    this.setState({
+      activeTab: routes[path] || 'home',
+      navMenuOpen: false,
+    });
+  };
+
   componentDidMount() {
+    this.handlePopState();
+    window.addEventListener('popstate', this.handlePopState);
+
     this.timerID = setInterval(() => {
       this.setState({ currentTime: new Date() });
     }, 1000);
@@ -138,27 +307,40 @@ class App extends Component<{}, AppState> {
 
   componentWillUnmount() {
     if (this.timerID) clearInterval(this.timerID);
+    window.removeEventListener('popstate', this.handlePopState);
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => undefined);
+    }
   }
 
-  // Play SFX helper
   playSFX = (src: string) => {
     if (this.sfxRef.current) {
       this.sfxRef.current.src = src;
       this.sfxRef.current.volume = this.state.volume;
-      this.sfxRef.current.play().catch((err) => console.log('SFX Playback Error:', err));
+      this.sfxRef.current
+        .play()
+        .catch((err) => console.log('SFX Playback Error:', err));
     }
   };
 
-  // Navigation Switcher
-  setActiveTab = (tab: 'home' | 'tasks' | 'gallery' | 'game' | 'about') => {
+  setActiveTab = (tab: TabName) => {
+    const url = this.tabToPath(tab);
+
+    if (window.location.pathname !== url) {
+      window.history.pushState({}, '', url);
+    }
+
     this.setState({ activeTab: tab, navMenuOpen: false });
   };
 
   toggleNavMenu = () => {
-    this.setState((prev) => ({ navMenuOpen: !prev.navMenuOpen }));
+    this.setState((prev) => ({
+      navMenuOpen: !prev.navMenuOpen,
+    }));
   };
 
-  // --- Task Handlers ---
+  // Tasks
   handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ taskInput: e.target.value });
   };
@@ -172,16 +354,18 @@ class App extends Component<{}, AppState> {
       completed: false,
     };
 
-    this.setState((prevState) => ({
-      tasks: [...prevState.tasks, newTask],
+    this.setState((prev) => ({
+      tasks: [...prev.tasks, newTask],
       taskInput: '',
     }));
   };
 
   toggleTaskCompletion = (id: number) => {
-    this.setState((prevState) => ({
-      tasks: prevState.tasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
+    this.setState((prev) => ({
+      tasks: prev.tasks.map((task) =>
+        task.id === id
+          ? { ...task, completed: !task.completed }
+          : task
       ),
     }));
   };
@@ -194,15 +378,20 @@ class App extends Component<{}, AppState> {
   };
 
   cancelEditing = () => {
-    this.setState({ editingTaskId: null, editingTaskText: '' });
+    this.setState({
+      editingTaskId: null,
+      editingTaskText: '',
+    });
   };
 
   saveTaskEdit = (id: number) => {
     if (this.state.editingTaskText.trim() === '') return;
 
-    this.setState((prevState) => ({
-      tasks: prevState.tasks.map((task) =>
-        task.id === id ? { ...task, text: this.state.editingTaskText } : task
+    const editedText = this.state.editingTaskText;
+
+    this.setState((prev) => ({
+      tasks: prev.tasks.map((task) =>
+        task.id === id ? { ...task, text: editedText } : task
       ),
       editingTaskId: null,
       editingTaskText: '',
@@ -210,23 +399,24 @@ class App extends Component<{}, AppState> {
   };
 
   deleteTask = (id: number) => {
-    this.setState((prevState) => ({
-      tasks: prevState.tasks.filter((task) => task.id !== id),
+    this.setState((prev) => ({
+      tasks: prev.tasks.filter((task) => task.id !== id),
     }));
   };
 
   deleteAllSelectedTasks = () => {
-    this.setState((prevState) => ({
-      tasks: prevState.tasks.filter((task) => !task.completed),
+    this.setState((prev) => ({
+      tasks: prev.tasks.filter((task) => !task.completed),
     }));
   };
 
-  // --- Gallery & Zoom & Drag Handlers ---
+  // Gallery
   openGalleryModal = (index: number) => {
     this.setState({
       selectedImgIndex: index,
       zoomLevel: 1,
       position: { x: 0, y: 0 },
+      isDragging: false,
     });
   };
 
@@ -235,72 +425,102 @@ class App extends Component<{}, AppState> {
       selectedImgIndex: null,
       zoomLevel: 1,
       position: { x: 0, y: 0 },
+      isDragging: false,
     });
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => undefined);
+    }
   };
 
-  toggleFullScreen = () => {
+  // Hide or show the title and description for an individual image.
+  toggleGalleryDescription = (id: number) => {
+    this.setState((prev) => ({
+      hiddenDescriptionIds: prev.hiddenDescriptionIds.includes(id)
+        ? prev.hiddenDescriptionIds.filter(
+            (hiddenId) => hiddenId !== id
+          )
+        : [...prev.hiddenDescriptionIds, id],
+    }));
+  };
+
+  toggleFullScreen = async () => {
     const container = this.modalContainerRef.current;
     if (!container) return;
 
-    if (!document.fullscreenElement) {
-      if (container.requestFullscreen) {
-        container.requestFullscreen();
-      } else if ((container as any).webkitRequestFullscreen) {
-        (container as any).webkitRequestFullscreen();
+    try {
+      if (!document.fullscreenElement) {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else {
+          console.warn('Fullscreen is not supported by this browser.');
+        }
+      } else {
+        await document.exitFullscreen?.();
       }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      }
+    } catch (error) {
+      console.error('Could not toggle fullscreen:', error);
     }
   };
 
   prevGalleryImage = () => {
-    this.setState((prevState) => {
-      if (prevState.selectedImgIndex === null) return null;
+    this.setState((prev) => {
+      if (prev.selectedImgIndex === null) return null;
+
       const newIndex =
-        prevState.selectedImgIndex === 0
+        prev.selectedImgIndex === 0
           ? this.galleryImages.length - 1
-          : prevState.selectedImgIndex - 1;
-      return { selectedImgIndex: newIndex, zoomLevel: 1, position: { x: 0, y: 0 } };
+          : prev.selectedImgIndex - 1;
+
+      return {
+        selectedImgIndex: newIndex,
+        zoomLevel: 1,
+        position: { x: 0, y: 0 },
+      };
     });
   };
 
   nextGalleryImage = () => {
-    this.setState((prevState) => {
-      if (prevState.selectedImgIndex === null) return null;
-      const newIndex =
-        (prevState.selectedImgIndex + 1) % this.galleryImages.length;
-      return { selectedImgIndex: newIndex, zoomLevel: 1, position: { x: 0, y: 0 } };
+    this.setState((prev) => {
+      if (prev.selectedImgIndex === null) return null;
+
+      return {
+        selectedImgIndex:
+          (prev.selectedImgIndex + 1) % this.galleryImages.length,
+        zoomLevel: 1,
+        position: { x: 0, y: 0 },
+      };
     });
   };
 
   zoomIn = () => {
-    this.setState((prevState) => ({
-      zoomLevel: Math.min(prevState.zoomLevel + 0.25, 3.5),
+    this.setState((prev) => ({
+      zoomLevel: Math.min(prev.zoomLevel + 0.25, 3.5),
     }));
   };
 
   zoomOut = () => {
-    this.setState((prevState) => {
-      const newZoom = Math.max(prevState.zoomLevel - 0.25, 0.5);
+    this.setState((prev) => {
+      const newZoom = Math.max(prev.zoomLevel - 0.25, 0.5);
+
       return {
         zoomLevel: newZoom,
-        position: newZoom <= 1 ? { x: 0, y: 0 } : prevState.position,
+        position: newZoom <= 1 ? { x: 0, y: 0 } : prev.position,
       };
     });
   };
 
   resetZoom = () => {
-    this.setState({ zoomLevel: 1, position: { x: 0, y: 0 } });
+    this.setState({
+      zoomLevel: 1,
+      position: { x: 0, y: 0 },
+    });
   };
 
-  // Dragging / Panning Handlers (Mouse)
   handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
     if (this.state.zoomLevel > 1) {
       e.preventDefault();
+
       this.setState({
         isDragging: true,
         dragStart: {
@@ -314,6 +534,7 @@ class App extends Component<{}, AppState> {
   handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (this.state.isDragging && this.state.zoomLevel > 1) {
       e.preventDefault();
+
       this.setState({
         position: {
           x: e.clientX - this.state.dragStart.x,
@@ -329,10 +550,10 @@ class App extends Component<{}, AppState> {
     }
   };
 
-  // Dragging / Panning Handlers (Mobile Touch)
   handleTouchStart = (e: React.TouchEvent<HTMLImageElement>) => {
     if (this.state.zoomLevel > 1 && e.touches.length === 1) {
       const touch = e.touches[0];
+
       this.setState({
         isDragging: true,
         dragStart: {
@@ -344,8 +565,13 @@ class App extends Component<{}, AppState> {
   };
 
   handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (this.state.isDragging && this.state.zoomLevel > 1 && e.touches.length === 1) {
+    if (
+      this.state.isDragging &&
+      this.state.zoomLevel > 1 &&
+      e.touches.length === 1
+    ) {
       const touch = e.touches[0];
+
       this.setState({
         position: {
           x: touch.clientX - this.state.dragStart.x,
@@ -361,7 +587,7 @@ class App extends Component<{}, AppState> {
     }
   };
 
-  // --- Audio Player Handlers ---
+  // Audio player
   togglePlayPause = () => {
     const audio = this.audioRef.current;
     if (!audio) return;
@@ -372,16 +598,16 @@ class App extends Component<{}, AppState> {
     } else {
       audio
         .play()
-        .then(() => {
-          this.setState({ isPlaying: true });
-        })
+        .then(() => this.setState({ isPlaying: true }))
         .catch((err) => console.log('Audio error:', err));
     }
   };
 
   handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVol = parseFloat(e.target.value);
+
     this.setState({ volume: newVol });
+
     if (this.audioRef.current) {
       this.audioRef.current.volume = newVol;
     }
@@ -391,12 +617,14 @@ class App extends Component<{}, AppState> {
     this.setState({ currentTrackIndex: index, isPlaying: true }, () => {
       if (this.audioRef.current) {
         this.audioRef.current.load();
-        this.audioRef.current.play().catch((err) => console.log(err));
+        this.audioRef.current
+          .play()
+          .catch((err) => console.log(err));
       }
     });
   };
 
-  // --- Tic-Tac-Toe Handlers ---
+  // 5x5 Tic-Tac-Toe
   handleSquareClick = (index: number) => {
     const { board, xIsNext, gameHasEnded } = this.state;
 
@@ -405,20 +633,21 @@ class App extends Component<{}, AppState> {
     this.playSFX(this.sfx.click);
 
     const newBoard = board.slice();
-    const currentPlayer = xIsNext ? 'X' : 'O';
-    newBoard[index] = currentPlayer;
+    newBoard[index] = xIsNext ? 'X' : 'O';
 
     const winner = this.calculateWinner(newBoard);
 
-    this.setState((prevState) => {
-      let updatedScoreX = prevState.scoreX;
-      let updatedScoreO = prevState.scoreO;
+    this.setState((prev) => {
+      let updatedScoreX = prev.scoreX;
+      let updatedScoreO = prev.scoreO;
       let isEnded = false;
 
       if (winner) {
         isEnded = true;
+
         if (winner === 'X') updatedScoreX += 1;
         if (winner === 'O') updatedScoreO += 1;
+
         this.playSFX(this.sfx.gameOver);
       } else if (newBoard.every((square) => square !== null)) {
         isEnded = true;
@@ -439,7 +668,7 @@ class App extends Component<{}, AppState> {
     this.playSFX(this.sfx.preparing);
 
     this.setState({
-      board: Array(9).fill(null),
+      board: Array(25).fill(null),
       xIsNext: true,
       gameHasEnded: false,
     });
@@ -451,24 +680,53 @@ class App extends Component<{}, AppState> {
     this.setState({
       scoreX: 0,
       scoreO: 0,
-      board: Array(9).fill(null),
+      board: Array(25).fill(null),
       xIsNext: true,
       gameHasEnded: false,
     });
   };
 
   calculateWinner = (squares: (string | null)[]) => {
-    const lines = [
-      [0, 1, 2], [3, 4, 5], [6, 7, 8],
-      [0, 3, 6], [1, 4, 7], [2, 5, 8],
-      [0, 4, 8], [2, 4, 6],
+    const size = 5;
+    const winLength = 4;
+
+    const directions: [number, number][] = [
+      [0, 1],
+      [1, 0],
+      [1, 1],
+      [1, -1],
     ];
-    for (let i = 0; i < lines.length; i++) {
-      const [a, b, c] = lines[i];
-      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-        return squares[a];
+
+    for (let row = 0; row < size; row++) {
+      for (let col = 0; col < size; col++) {
+        const player = squares[row * size + col];
+        if (!player) continue;
+
+        for (const [dr, dc] of directions) {
+          let matches = 1;
+
+          for (let step = 1; step < winLength; step++) {
+            const nextRow = row + dr * step;
+            const nextCol = col + dc * step;
+
+            if (
+              nextRow < 0 ||
+              nextRow >= size ||
+              nextCol < 0 ||
+              nextCol >= size
+            ) {
+              break;
+            }
+
+            if (squares[nextRow * size + nextCol] !== player) break;
+            matches++;
+          }
+
+          if (matches >= winLength) return player;
+        }
       }
     }
+
     return null;
   };
 
@@ -492,20 +750,28 @@ class App extends Component<{}, AppState> {
       xIsNext,
       scoreX,
       scoreO,
+      hiddenDescriptionIds,
     } = this.state;
 
     const winner = this.calculateWinner(board);
     const isBoardFull = board.every((square) => square !== null);
-    const completedCount = tasks.filter((t) => t.completed).length;
+    const completedCount = tasks.filter((task) => task.completed).length;
     const activeTrack = this.bgMusicTracks[currentTrackIndex];
+
+    const navItems: { tab: TabName; label: string }[] = [
+      { tab: 'home', label: 'Home' },
+      { tab: 'tasks', label: 'Tasks' },
+      { tab: 'gallery', label: 'Gallery' },
+      { tab: 'game', label: 'Tic-Tac-Toe' },
+      { tab: 'about', label: 'About' },
+    ];
 
     return (
       <div className="d-flex flex-column min-vh-100 bg-light overflow-x-hidden">
-        {/* Audio Elements */}
         <audio ref={this.audioRef} src={activeTrack.src} preload="metadata" />
         <audio ref={this.sfxRef} preload="auto" />
 
-        {/* Mobile-Responsive Navbar */}
+        {/* Navigation */}
         <nav className="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
           <div className="container-fluid px-3">
             <button
@@ -515,64 +781,38 @@ class App extends Component<{}, AppState> {
               React App
             </button>
 
-            {/* Mobile Toggler Button */}
             <button
               className="navbar-toggler border-0"
               type="button"
               onClick={this.toggleNavMenu}
               aria-label="Toggle navigation"
+              aria-expanded={navMenuOpen}
             >
-              <span className="navbar-toggler-icon"></span>
+              <span className="navbar-toggler-icon" />
             </button>
 
             <div className={`collapse navbar-collapse ${navMenuOpen ? 'show' : ''}`}>
               <div className="navbar-nav ms-auto gap-1 gap-lg-3 pt-2 pt-lg-0">
-                <button
-                  className={`nav-link btn btn-link text-start text-decoration-none px-3 py-2 ${
-                    activeTab === 'home' ? 'active fw-bold text-white bg-primary bg-opacity-25 rounded' : 'text-light'
-                  }`}
-                  onClick={() => this.setActiveTab('home')}
-                >
-                  Home
-                </button>
-                <button
-                  className={`nav-link btn btn-link text-start text-decoration-none px-3 py-2 ${
-                    activeTab === 'tasks' ? 'active fw-bold text-white bg-primary bg-opacity-25 rounded' : 'text-light'
-                  }`}
-                  onClick={() => this.setActiveTab('tasks')}
-                >
-                  Tasks
-                </button>
-                <button
-                  className={`nav-link btn btn-link text-start text-decoration-none px-3 py-2 ${
-                    activeTab === 'gallery' ? 'active fw-bold text-white bg-primary bg-opacity-25 rounded' : 'text-light'
-                  }`}
-                  onClick={() => this.setActiveTab('gallery')}
-                >
-                  Gallery
-                </button>
-                <button
-                  className={`nav-link btn btn-link text-start text-decoration-none px-3 py-2 ${
-                    activeTab === 'game' ? 'active fw-bold text-white bg-primary bg-opacity-25 rounded' : 'text-light'
-                  }`}
-                  onClick={() => this.setActiveTab('game')}
-                >
-                  Tic-Tac-Toe
-                </button>
-                <button
-                  className={`nav-link btn btn-link text-start text-decoration-none px-3 py-2 ${
-                    activeTab === 'about' ? 'active fw-bold text-white bg-primary bg-opacity-25 rounded' : 'text-light'
-                  }`}
-                  onClick={() => this.setActiveTab('about')}
-                >
-                  About
-                </button>
+                {navItems.map(({ tab, label }) => (
+                  <button
+                    key={tab}
+                    className={`nav-link btn btn-link text-start text-decoration-none px-3 py-2 ${
+                      activeTab === tab
+                        ? 'active fw-bold text-white bg-primary bg-opacity-25 rounded'
+                        : 'text-light'
+                    }`}
+                    onClick={() => this.setActiveTab(tab)}
+                    aria-current={activeTab === tab ? 'page' : undefined}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
         </nav>
 
-        {/* Music Player Bar */}
+        {/* Music Player */}
         <div className="bg-secondary text-white py-2 shadow-sm">
           <div className="container-fluid px-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
             <div className="d-flex align-items-center gap-2">
@@ -587,7 +827,8 @@ class App extends Component<{}, AppState> {
                 className="form-select form-select-sm bg-dark text-white border-0"
                 style={{ width: '110px' }}
                 value={currentTrackIndex}
-                onChange={(e) => this.changeTrack(parseInt(e.target.value))}
+                onChange={(e) => this.changeTrack(parseInt(e.target.value, 10))}
+                aria-label="Select music track"
               >
                 {this.bgMusicTracks.map((track, idx) => (
                   <option key={track.id} value={idx}>
@@ -614,34 +855,46 @@ class App extends Component<{}, AppState> {
                   step="0.05"
                   value={volume}
                   onChange={this.handleVolumeChange}
+                  aria-label="Volume"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Content Section */}
-        <main className="container-fluid px-3 my-3 flex-grow-1 mx-auto" style={{ maxWidth: '850px' }}>
-          
-          {/* HOME TAB */}
+        <main
+          className="container-fluid px-3 my-3 flex-grow-1 mx-auto"
+          style={{ maxWidth: '850px' }}
+        >
+          {/* Home */}
           {activeTab === 'home' && (
             <div className="text-center py-4 py-md-5">
               <h1 className="display-5 fw-bold mb-3">Hello world!</h1>
-              
-              {/* Live Clock Card */}
-              <div className="card mx-auto my-4 p-3 shadow-sm bg-dark text-white" style={{ maxWidth: '280px' }}>
-                <small className="text-muted text-uppercase tracking-wide">Current Time</small>
-                <h2 className="fw-mono mt-1 mb-0 fs-3">{currentTime.toLocaleTimeString()}</h2>
-                <small className="text-secondary">{currentTime.toLocaleDateString()}</small>
+
+              <div
+                className="card mx-auto my-4 p-3 shadow-sm bg-dark text-white"
+                style={{ maxWidth: '280px' }}
+              >
+                <small className="text-muted text-uppercase tracking-wide">
+                  Current Time
+                </small>
+                <h2 className="fw-mono mt-1 mb-0 fs-3">
+                  {currentTime.toLocaleTimeString()}
+                </h2>
+                <small className="text-secondary">
+                  {currentTime.toLocaleDateString()}
+                </small>
               </div>
 
               <p className="lead text-muted fs-6 px-2">
-                Welcome to the mobile-optimized React application. Manage tasks, view photos with zoom and pan gestures, listen to music, or play Tic-Tac-Toe on any device!
+                Welcome to the mobile-optimized React application. Manage tasks,
+                view photos with zoom and pan gestures, listen to music, or play
+                Tic-Tac-Toe on any device!
               </p>
             </div>
           )}
 
-          {/* TASKS TAB */}
+          {/* Tasks */}
           {activeTab === 'tasks' && (
             <div>
               <h3 className="mb-3 text-center">Task Tracker</h3>
@@ -720,7 +973,11 @@ class App extends Component<{}, AppState> {
                               <input
                                 type="checkbox"
                                 className="form-check-input me-3 flex-shrink-0"
-                                style={{ width: '1.25rem', height: '1.25rem', cursor: 'pointer' }}
+                                style={{
+                                  width: '1.25rem',
+                                  height: '1.25rem',
+                                  cursor: 'pointer',
+                                }}
                                 checked={task.completed}
                                 onChange={() => this.toggleTaskCompletion(task.id)}
                               />
@@ -758,143 +1015,238 @@ class App extends Component<{}, AppState> {
             </div>
           )}
 
-          {/* GALLERY TAB */}
+          {/* Gallery */}
           {activeTab === 'gallery' && (
             <div>
               <h3 className="mb-2 text-center">Photo Gallery</h3>
+
               <p className="text-center text-muted small mb-3">
-                Tap an image for Full Screen, Zooming, and Drag/Touch Panning.
+                Select an image for fullscreen viewing, zooming, and panning.
+                Use Hide details or Show details to control each image's title
+                and description.
               </p>
 
               <div className="row g-2 g-sm-3">
-                {this.galleryImages.map((img, idx) => (
-                  <div key={img.id} className="col-6 col-sm-4 col-md-3">
-                    <div
-                      className="card shadow-sm h-100 border-0"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => this.openGalleryModal(idx)}
-                    >
-                      <div
-                        className="d-flex align-items-center justify-content-center bg-light rounded"
-                        style={{ height: '130px', overflow: 'hidden' }}
-                      >
-                        <img
-                          src={img.src}
-                          className="card-img-top mh-100 mw-100 object-fit-cover"
-                          alt={img.alt}
-                          onError={(e) => {
-                            // Fallback to relative ./img/ path if process.env.PUBLIC_URL fails
-                            const target = e.target as HTMLImageElement;
-                            if (!target.src.endsWith(`./img/${img.fileName}`)) {
-                              target.src = `./img/${img.fileName}`;
-                            }
+                {this.galleryImages.map((img, idx) => {
+                  const detailsHidden = hiddenDescriptionIds.includes(img.id);
+
+                  return (
+                    <div key={img.id} className="col-6 col-sm-4 col-md-3">
+                      <div className="card shadow-sm h-100 border-0">
+                        <button
+                          type="button"
+                          className="border-0 bg-light p-0 d-flex align-items-center justify-content-center rounded-top"
+                          style={{
+                            height: '160px',
+                            overflow: 'hidden',
+                            cursor: 'pointer',
                           }}
-                        />
-                      </div>
-                      <div className="card-body p-2 text-center bg-white">
-                        <small className="fw-semibold text-dark d-block text-truncate">
-                          {img.title}
-                        </small>
+                          onClick={() => this.openGalleryModal(idx)}
+                          aria-label={`Open ${img.title} in fullscreen`}
+                        >
+                          <img
+                            src={img.src}
+                            className="mw-100 mh-100"
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                            }}
+                            alt={img.alt}
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              const fallback = `./img/${img.fileName}`;
+                              if (!target.src.endsWith(fallback)) {
+                                target.src = fallback;
+                              }
+                            }}
+                          />
+                        </button>
+
+                        <div className="card-body p-2 text-center bg-white">
+                          {!detailsHidden && (
+                            <>
+                              <h6 className="fw-semibold text-dark mb-1">
+                                {img.title}
+                              </h6>
+                              <p className="small text-muted mb-2">
+                                {img.description}
+                              </p>
+                            </>
+                          )}
+
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => this.toggleGalleryDescription(img.id)}
+                            aria-expanded={!detailsHidden}
+                            aria-label={`${detailsHidden ? 'Show' : 'Hide'} details for ${img.title}`}
+                          >
+                            {detailsHidden ? 'Show details' : 'Hide details'}
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-link d-block mx-auto mt-1"
+                            onClick={() => this.openGalleryModal(idx)}
+                          >
+                            Open image
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
-              {/* Lightbox Modal */}
-              {selectedImgIndex !== null && (
-                <div
-                  ref={this.modalContainerRef}
-                  className="modal show d-block"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.92)', zIndex: 1050 }}
-                  onMouseMove={this.handleMouseMove}
-                  onMouseUp={this.handleMouseUp}
-                  onTouchMove={this.handleTouchMove}
-                  onTouchEnd={this.handleTouchEnd}
-                >
-                  <div className="modal-dialog modal-dialog-centered modal-lg my-0 my-sm-auto min-vh-100 d-flex align-items-center">
-                    <div className="modal-content bg-dark text-white border-0 shadow-lg">
-                      <div className="modal-header border-secondary py-2 px-3">
-                        <h6 className="modal-title text-truncate me-auto">
-                          {this.galleryImages[selectedImgIndex].title} ({selectedImgIndex + 1}/{this.galleryImages.length})
-                        </h6>
-                        <button
-                          type="button"
-                          className="btn btn-outline-light btn-sm me-2 py-0 px-2"
-                          onClick={this.toggleFullScreen}
-                          title="Toggle Fullscreen"
-                        >
-                          ⛶
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-close btn-close-white"
-                          onClick={this.closeGalleryModal}
-                        ></button>
-                      </div>
+              {/* Fullscreen lightbox */}
+              {selectedImgIndex !== null && (() => {
+                const img = this.galleryImages[selectedImgIndex];
+                const detailsHidden = hiddenDescriptionIds.includes(img.id);
 
-                      <div
-                        className="modal-body text-center overflow-hidden p-0 d-flex align-items-center justify-content-center"
-                        style={{ height: '60vh', minHeight: '300px', userSelect: 'none' }}
+                return (
+                  <div
+                    ref={this.modalContainerRef}
+                    className="gallery-lightbox"
+                    style={{
+                      position: 'fixed',
+                      inset: 0,
+                      width: '100vw',
+                      height: '100dvh',
+                      margin: 0,
+                      padding: 0,
+                      background: '#000',
+                      color: '#fff',
+                      zIndex: 2000,
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                    }}
+                    onMouseMove={this.handleMouseMove}
+                    onMouseUp={this.handleMouseUp}
+                    onMouseLeave={this.handleMouseUp}
+                    onTouchMove={this.handleTouchMove}
+                    onTouchEnd={this.handleTouchEnd}
+                  >
+                    <div className="d-flex align-items-center gap-2 px-3 py-2 bg-dark flex-shrink-0">
+                      <h6 className="mb-0 me-auto text-truncate">
+                        {img.title} ({selectedImgIndex + 1}/{this.galleryImages.length})
+                      </h6>
+
+                      <button
+                        type="button"
+                        className="btn btn-outline-light btn-sm"
+                        onClick={this.toggleFullScreen}
+                        title="Toggle fullscreen"
+                        aria-label="Toggle fullscreen"
                       >
-                        <img
-                          src={this.galleryImages[selectedImgIndex].src}
-                          alt={this.galleryImages[selectedImgIndex].alt}
-                          onMouseDown={this.handleMouseDown}
-                          onTouchStart={this.handleTouchStart}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            const fileName = this.galleryImages[selectedImgIndex].fileName;
-                            if (!target.src.endsWith(`./img/${fileName}`)) {
-                              target.src = `./img/${fileName}`;
-                            }
-                          }}
-                          style={{
-                            transform: `translate(${position.x}px, ${position.y}px) scale(${zoomLevel})`,
-                            maxHeight: '100%',
-                            maxWidth: '100%',
-                            objectFit: 'contain',
-                            cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
-                            transition: isDragging ? 'none' : 'transform 0.15s ease-out',
-                          }}
-                        />
+                        ⛶
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-outline-light btn-sm"
+                        onClick={() => this.toggleGalleryDescription(img.id)}
+                        aria-expanded={!detailsHidden}
+                        aria-label={`${detailsHidden ? 'Show' : 'Hide'} details for ${img.title}`}
+                      >
+                        {detailsHidden ? 'Show details' : 'Hide details'}
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn-close btn-close-white"
+                        onClick={this.closeGalleryModal}
+                        aria-label="Close gallery"
+                      />
+                    </div>
+
+                    {!detailsHidden && (
+                      <div className="bg-dark text-white text-center px-3 py-2 flex-shrink-0">
+                        <strong>{img.title}</strong>
+                        <p className="small mb-0">{img.description}</p>
+                      </div>
+                    )}
+
+                    <div
+                      className="flex-grow-1 d-flex align-items-center justify-content-center"
+                      style={{
+                        minHeight: 0,
+                        width: '100%',
+                        overflow: 'hidden',
+                        userSelect: 'none',
+                        touchAction: 'none',
+                      }}
+                    >
+                      <img
+                        src={img.src}
+                        alt={img.alt}
+                        draggable={false}
+                        onMouseDown={this.handleMouseDown}
+                        onTouchStart={this.handleTouchStart}
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          const fallback = `./img/${img.fileName}`;
+                          if (!target.src.endsWith(fallback)) {
+                            target.src = fallback;
+                          }
+                        }}
+                        style={{
+                          display: 'block',
+                          maxHeight: '100%',
+                          maxWidth: '100%',
+                          width: 'auto',
+                          height: 'auto',
+                          objectFit: 'contain',
+                          transform: `translate(${position.x}px, ${position.y}px) scale(${zoomLevel})`,
+                          transformOrigin: 'center center',
+                          cursor: zoomLevel > 1
+                            ? isDragging ? 'grabbing' : 'grab'
+                            : 'default',
+                          transition: isDragging
+                            ? 'none'
+                            : 'transform 0.15s ease-out',
+                        }}
+                      />
+                    </div>
+
+                    <div className="bg-dark d-flex flex-wrap justify-content-between align-items-center gap-2 p-2 flex-shrink-0">
+                      <div className="btn-group btn-group-sm">
+                        <button className="btn btn-outline-light" onClick={this.zoomIn}>
+                          ➕ Zoom In
+                        </button>
+                        <button className="btn btn-outline-light" onClick={this.zoomOut}>
+                          ➖ Zoom Out
+                        </button>
+                        <button className="btn btn-outline-secondary" onClick={this.resetZoom}>
+                          Reset ({Math.round(zoomLevel * 100)}%)
+                        </button>
                       </div>
 
-                      <div className="modal-footer border-secondary justify-content-between flex-wrap gap-2 py-2 px-3">
-                        <div className="btn-group btn-group-sm">
-                          <button className="btn btn-outline-light" onClick={this.zoomIn}>
-                            ➕ Zoom In
-                          </button>
-                          <button className="btn btn-outline-light" onClick={this.zoomOut}>
-                            ➖ Zoom Out
-                          </button>
-                          <button className="btn btn-outline-secondary" onClick={this.resetZoom}>
-                            Reset ({Math.round(zoomLevel * 100)}%)
-                          </button>
-                        </div>
-
-                        <div className="btn-group btn-group-sm ms-auto">
-                          <button className="btn btn-primary" onClick={this.prevGalleryImage}>
-                            ⬅ Prev
-                          </button>
-                          <button className="btn btn-primary" onClick={this.nextGalleryImage}>
-                            Next ➡️
-                          </button>
-                        </div>
+                      <div className="btn-group btn-group-sm ms-auto">
+                        <button className="btn btn-primary" onClick={this.prevGalleryImage}>
+                          ⬅ Prev
+                        </button>
+                        <button className="btn btn-primary" onClick={this.nextGalleryImage}>
+                          Next ➡
+                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
 
-          {/* TIC-TAC-TOE GAME TAB */}
+          {/* Game */}
           {activeTab === 'game' && (
             <div className="text-center py-2">
-              <h3 className="mb-3">Tic-Tac-Toe</h3>
+              <h3 className="mb-3">Tic-Tac-Toe: Five by Five</h3>
+              <p className="text-muted small">
+                Get four Xs or Os in a row horizontally, vertically, or diagonally to win.
+              </p>
 
-              <div className="card mx-auto mb-3 p-2 shadow-sm" style={{ maxWidth: '300px' }}>
+              <div className="card mx-auto mb-3 p-2 shadow-sm" style={{ maxWidth: '380px' }}>
                 <h6 className="card-title text-muted mb-2">Scoreboard</h6>
                 <div className="d-flex justify-content-around align-items-center fs-5 fw-bold">
                   <div className="text-primary">
@@ -923,18 +1275,26 @@ class App extends Component<{}, AppState> {
               <div
                 className="d-grid mx-auto mb-4"
                 style={{
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '8px',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+                  gap: '6px',
                   width: '100%',
-                  maxWidth: '280px',
+                  maxWidth: '380px',
                 }}
               >
                 {board.map((value, idx) => (
                   <button
                     key={idx}
+                    type="button"
                     className="btn btn-outline-dark fw-bold rounded shadow-sm d-flex align-items-center justify-content-center"
-                    style={{ height: '80px', fontSize: '2.2rem' }}
+                    style={{
+                      aspectRatio: '1 / 1',
+                      padding: 0,
+                      fontSize: 'clamp(1.1rem, 5vw, 2rem)',
+                    }}
                     onClick={() => this.handleSquareClick(idx)}
+                    disabled={Boolean(value) || this.state.gameHasEnded}
+                    aria-label={`Square ${idx + 1}${value ? `, ${value}` : ', empty'}`}
                   >
                     {value}
                   </button>
@@ -952,21 +1312,26 @@ class App extends Component<{}, AppState> {
             </div>
           )}
 
-          {/* ABOUT TAB */}
+          {/* About */}
           {activeTab === 'about' && (
             <div className="py-3">
               <h3 className="mb-3 text-center">About This App</h3>
+
               <div className="card shadow-sm p-4 bg-white rounded">
                 <p>
-                  This application is a feature-rich React TypeScript web application built with Bootstrap. It showcases component state management, responsive UI design, gesture handling, and media integration.
+                  This React TypeScript application uses Bootstrap and includes a
+                  task tracker, responsive image gallery, music player, live clock,
+                  and two-player five-by-five Tic-Tac-Toe.
                 </p>
+
                 <h5 className="mt-3">Features Included:</h5>
                 <ul>
-                  <li><strong>Live Time Display:</strong> Real-time clock updating every second.</li>
-                  <li><strong>Task Tracker:</strong> Full CRUD capability for tasks with edit, complete, delete, and bulk delete features.</li>
-                  <li><strong>Photo Gallery:</strong> Responsive grid displaying 26 images with dynamic modal lightbox supporting zoom (in/out/reset), fullscreen toggle, and touch/mouse panning.</li>
-                  <li><strong>Background Music Player:</strong> Built-in audio controller with play/pause, volume control, and track switcher.</li>
-                  <li><strong>Tic-Tac-Toe Game:</strong> Interactive 2-player game complete with sound effects, automatic winner detection, draw state, score persistence, and round resets.</li>
+                  <li><strong>Navigation:</strong> URL paths for Home, Tasks, Gallery, Tic-Tac-Toe, and About.</li>
+                  <li><strong>Live Time:</strong> Real-time clock updating every second.</li>
+                  <li><strong>Task Tracker:</strong> Add, edit, complete, delete, and bulk-delete tasks.</li>
+                  <li><strong>Photo Gallery:</strong> 26 images with custom titles and descriptions, individual hide/show controls, zoom, pan, navigation, and fullscreen viewing.</li>
+                  <li><strong>Music Player:</strong> Play/pause, volume, and track selection.</li>
+                  <li><strong>Tic-Tac-Toe:</strong> 5×5 board where four connected squares win, with score tracking and round resets.</li>
                 </ul>
               </div>
             </div>
