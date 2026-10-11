@@ -267,7 +267,7 @@ class App extends Component<{}, AppState> {
 
   private tabToPath = (tab: TabName) => {
     const basePath = this.getBasePath();
-    const route = tab === 'home' ? '/' : `/${tab}`;
+    const route = tab === 'home' ? '/' : tab === 'data analysis' ? '/data-analysis' : `/${tab}`;
     return `${basePath}${route}`;
   };
 
@@ -284,6 +284,7 @@ class App extends Component<{}, AppState> {
     const routes: Record<string, TabName> = {
       '/': 'home',
       '/home': 'home',
+      '/data-analysis': 'data analysis',
       '/data analysis': 'data analysis',
       '/tasks': 'tasks',
       '/gallery': 'gallery',
@@ -761,6 +762,7 @@ class App extends Component<{}, AppState> {
 
     const navItems: { tab: TabName; label: string }[] = [
       { tab: 'home', label: 'Home' },
+      { tab: 'data analysis', label: 'Data Analysis' },
       { tab: 'tasks', label: 'Tasks' },
       { tab: 'gallery', label: 'Gallery' },
       { tab: 'game', label: 'Tic-Tac-Toe' },
@@ -899,6 +901,100 @@ class App extends Component<{}, AppState> {
               </h2>
             </div>
         
+          )}
+
+          {/* Data Analysis Projects */}
+          {activeTab === 'data analysis' && (
+            <section className="data-projects py-3 py-md-4">
+              <header className="text-center mb-4 mb-md-5">
+                <span className="badge rounded-pill text-bg-primary mb-3 px-3 py-2">Portfolio</span>
+                <h1 className="display-6 fw-bold mb-3">Data Analysis Projects</h1>
+                <p className="lead text-secondary mx-auto mb-0" style={{ maxWidth: '680px' }}>
+                  A selection of projects exploring real-world questions with data — from housing and tourism pressures to games and retail performance. Open a project to explore its code, analysis, and findings.
+                </p>
+              </header>
+
+              <div className="row g-4">
+                {[
+                  {
+                    title: 'Airbnb Rent Pressures',
+                    category: 'Housing · Short-term rentals',
+                    description: 'Explore how short-term rental activity may relate to housing availability and rent pressure. The project brings housing and tourism questions into a data-driven analysis, helping highlight patterns and areas for further investigation.',
+                    image: `${this.baseUrl}/img/projects/airbnb-rent-pressures.png`,
+                    alt: 'Visualization for the Airbnb rent pressures analysis',
+                    repo: 'https://github.com/Dinistpn/Airbnb-Rent-Pressures',
+                    number: '01',
+                  },
+                  {
+                    title: 'Housing & Tourism Analysis',
+                    category: 'Urban data · Tourism',
+                    description: 'Investigate the relationship between tourism activity and housing-related indicators. This project frames urban change as an analytical question and uses data to explore trends and potential connections.',
+                    image: `${this.baseUrl}/img/projects/housing-tourism-analysis.png`,
+                    alt: 'Visualization for the housing and tourism analysis',
+                    repo: 'https://github.com/Dinistpn/housing-tourism-analysis',
+                    number: '02',
+                  },
+                  {
+                    title: 'Data Games',
+                    category: 'Exploratory analysis · Data visualization',
+                    description: 'A data-focused project built around games and playful exploration. Use the repository to see how the data is organized, what questions are explored, and how the results are presented.',
+                    image: `${this.baseUrl}/img/projects/data-games.png`,
+                    alt: 'Preview image for the Data Games project',
+                    repo: 'https://github.com/Dinistpn/data-games',
+                    number: '03',
+                  },
+                  {
+                    title: 'Retail Sales Analytics',
+                    category: 'Business intelligence · Sales',
+                    description: 'Analyze retail performance through sales trends, product and customer patterns, and business-focused metrics. The project presents an opportunity to turn transaction data into useful insights for understanding performance and supporting decisions.',
+                    image: `${this.baseUrl}/img/projects/retail-sales-analytics.png`,
+                    alt: 'Dashboard preview for the retail sales analytics project',
+                    repo: 'https://github.com/Dinistpn/Retail-Sales-Analytics',
+                    number: '04',
+                  },
+                ].map((project) => (
+                  <div className="col-12 col-md-6" key={project.number}>
+                    <article className="card h-100 border-0 shadow-sm project-card overflow-hidden">
+                      <div className="project-image-wrap position-relative">
+                        <div className="project-image-placeholder d-flex flex-column align-items-center justify-content-center text-center p-4" aria-hidden="true">
+                          <span className="project-number mb-2">{project.number}</span>
+                          <span className="fw-semibold">Project preview</span>
+                          <span className="small opacity-75">Add an image to public/img/projects</span>
+                        </div>
+                        <img
+                          src={project.image}
+                          alt={project.alt}
+                          className="project-image"
+                          loading="lazy"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      </div>
+                      <div className="card-body p-4 d-flex flex-column">
+                        <p className="text-primary text-uppercase fw-semibold small mb-2 project-category">{project.category}</p>
+                        <h2 className="h4 fw-bold mb-3">{project.title}</h2>
+                        <p className="text-secondary mb-4">{project.description}</p>
+                        <div className="mt-auto d-flex flex-wrap gap-2">
+                          <a className="btn btn-primary rounded-pill px-4" href={project.repo} target="_blank" rel="noreferrer">View on GitHub <span aria-hidden="true">↗</span></a>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                ))}
+              </div>
+
+              <style>{`
+                .data-projects { color: #172033; }
+                .project-card { border-radius: 1rem; transition: transform .2s ease, box-shadow .2s ease; }
+                .project-card:hover { transform: translateY(-4px); box-shadow: 0 1rem 2rem rgba(24, 39, 75, .12) !important; }
+                .project-image-wrap { height: 220px; overflow: hidden; background: #e9eef8; }
+                .project-image-placeholder { position: absolute; inset: 0; color: #fff; background: linear-gradient(135deg, #172554, #2563eb 58%, #67e8f9); }
+                .project-number { font-size: 2.5rem; line-height: 1; font-weight: 800; opacity: .9; }
+                .project-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+                .project-category { letter-spacing: .08em; font-size: .72rem; }
+                @media (max-width: 575.98px) { .project-image-wrap { height: 185px; } }
+                @media (prefers-reduced-motion: reduce) { .project-card { transition: none; } .project-card:hover { transform: none; } }
+              `}</style>
+            </section>
           )}
 
           {/* Tasks */}
