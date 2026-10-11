@@ -869,12 +869,13 @@ class App extends Component<{}, AppState> {
           {/* Home */}
           {activeTab === 'home' && (
             <div className="text-center py-4 py-md-5">
-              <h1 className="display-5 fw-bold mb-3">Hello world!</h1>
+              <h1 className="display-5 fw-bold mb-3">Welcome!</h1>
 
               <div
                 className="card mx-auto my-4 p-3 shadow-sm bg-dark text-white"
                 style={{ maxWidth: '280px' }}
               >
+                
                 <small className="text-muted text-uppercase tracking-wide">
                   Current Time
                 </small>
@@ -887,9 +888,8 @@ class App extends Component<{}, AppState> {
               </div>
 
               <p className="lead text-muted fs-6 px-2">
-                Welcome to the mobile-optimized React application. Manage tasks,
-                view photos with zoom and pan gestures, listen to music, or play
-                Tic-Tac-Toe on any device!
+                This mobile-optimized React application was created to practice with Javascript and to show of my work. There is a menu that includes a page that includes some of the projects related with data analysis, to manage tasks,
+                view photos with zoom and pan gestures, listen to music, or play Tic-Tac-Toe on any device.
               </p>
             </div>
           )}
