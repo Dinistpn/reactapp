@@ -15,7 +15,7 @@ interface AudioTrack {
   src: string;
 }
 
-type TabName = 'home' | 'tasks' | 'gallery' | 'game' | 'about';
+type TabName = 'home' | 'data analysis' | 'tasks' | 'gallery' | 'game' | 'about';
 
 interface GalleryImageData {
   id: number;
@@ -284,6 +284,7 @@ class App extends Component<{}, AppState> {
     const routes: Record<string, TabName> = {
       '/': 'home',
       '/home': 'home',
+      '/data analysis': 'data analysis',
       '/tasks': 'tasks',
       '/gallery': 'gallery',
       '/game': 'game',
@@ -869,7 +870,7 @@ class App extends Component<{}, AppState> {
           {/* Home */}
           {activeTab === 'home' && (
             <div className="text-center py-4 py-md-5">
-              <h1 className="display-5 fw-bold mb-3">Welcome!</h1>
+              <h1 className="display-5 fw-bold mb-3">Welcome to my React App!</h1>
 
               <div
                 className="card mx-auto my-4 p-3 shadow-sm bg-dark text-white"
@@ -891,7 +892,13 @@ class App extends Component<{}, AppState> {
                 This mobile-optimized React application was created to practice with Javascript and to show of my work. There is a menu that includes a page that includes some of the projects related with data analysis, to manage tasks,
                 view photos with zoom and pan gestures, listen to music, or play Tic-Tac-Toe on any device.
               </p>
+              <h2 className="fw-mono mt-1 mb-0 fs-3">
+                  <p className="lead text-muted fs-6 px-2">
+                    Hope you enjoy this App.
+                  </p>
+              </h2>
             </div>
+        
           )}
 
           {/* Tasks */}
