@@ -17,6 +17,13 @@ interface AudioTrack {
 
 type TabName = 'home' | 'data analysis' | 'tasks' | 'gallery' | 'game' | 'about';
 
+interface ProjectPreview {
+  title: string;
+  image: string;
+  alt: string;
+  description: string;
+}
+
 interface GalleryImageData {
   id: number;
   title: string;
@@ -53,6 +60,8 @@ interface AppState {
   dragStart: { x: number; y: number };
   position: { x: number; y: number };
   hiddenDescriptionIds: number[];
+  selectedProject: ProjectPreview | null;
+  projectZoomLevel: number;
 
   currentTrackIndex: number;
   isPlaying: boolean;
@@ -245,6 +254,8 @@ class App extends Component<{}, AppState> {
       dragStart: { x: 0, y: 0 },
       position: { x: 0, y: 0 },
       hiddenDescriptionIds: [],
+      selectedProject: null,
+      projectZoomLevel: 1,
 
       currentTrackIndex: 0,
       isPlaying: false,
@@ -265,22 +276,14 @@ class App extends Component<{}, AppState> {
       : '';
   };
 
-  private tabToPath = (tab: TabName) => {
-    const basePath = this.getBasePath();
-    const route = tab === 'home' ? '/' : tab === 'data analysis' ? '/data-analysis' : `/${tab}`;
-    return `${basePath}${route}`;
-  };
+  private routeForTab = (tab: TabName) =>
+    tab === 'home' ? '/' : tab === 'data analysis' ? '/data-analysis' : `/${tab}`;
+
+  // Hash-based routes work on static hosting too, so refreshing a subpage does not
+  // require the server to rewrite /data-analysis, /gallery, etc. to index.html.
+  private tabToPath = (tab: TabName) => `#${this.routeForTab(tab)}`;
 
   private handlePopState = () => {
-    const basePath = this.getBasePath();
-    let path = window.location.pathname;
-
-    if (basePath && path.startsWith(basePath)) {
-      path = path.slice(basePath.length) || '/';
-    }
-
-    path = path.replace(/\/+$/, '') || '/';
-
     const routes: Record<string, TabName> = {
       '/': 'home',
       '/home': 'home',
@@ -292,15 +295,25 @@ class App extends Component<{}, AppState> {
       '/about': 'about',
     };
 
-    this.setState({
-      activeTab: routes[path] || 'home',
-      navMenuOpen: false,
-    });
+    // Prefer the refresh-safe hash route; accept old pathname URLs for compatibility.
+    const hashRoute = window.location.hash.startsWith('#/')
+      ? window.location.hash.slice(1).replace(/\/+$/, '') || '/'
+      : null;
+    let path = hashRoute;
+    if (!path) {
+      const basePath = this.getBasePath();
+      path = window.location.pathname;
+      if (basePath && path.startsWith(basePath)) path = path.slice(basePath.length) || '/';
+      path = path.replace(/\/+$/, '') || '/';
+    }
+
+    this.setState({ activeTab: routes[path] || 'home', navMenuOpen: false });
   };
 
   componentDidMount() {
     this.handlePopState();
     window.addEventListener('popstate', this.handlePopState);
+    window.addEventListener('hashchange', this.handlePopState);
 
     this.timerID = setInterval(() => {
       this.setState({ currentTime: new Date() });
@@ -310,6 +323,7 @@ class App extends Component<{}, AppState> {
   componentWillUnmount() {
     if (this.timerID) clearInterval(this.timerID);
     window.removeEventListener('popstate', this.handlePopState);
+    window.removeEventListener('hashchange', this.handlePopState);
 
     if (document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => undefined);
@@ -327,14 +341,26 @@ class App extends Component<{}, AppState> {
   };
 
   setActiveTab = (tab: TabName) => {
-    const url = this.tabToPath(tab);
-
-    if (window.location.pathname !== url) {
-      window.history.pushState({}, '', url);
+    const hashUrl = this.tabToPath(tab);
+    if (window.location.hash !== hashUrl) {
+      window.history.pushState({}, '', `${window.location.pathname}${window.location.search}${hashUrl}`);
     }
-
     this.setState({ activeTab: tab, navMenuOpen: false });
   };
+
+  openProjectPreview = (project: ProjectPreview) => {
+    this.setState({ selectedProject: project, projectZoomLevel: 1 });
+  };
+
+  closeProjectPreview = () => this.setState({ selectedProject: null, projectZoomLevel: 1 });
+
+  zoomProjectImage = (amount: number) => {
+    this.setState((prev) => ({
+      projectZoomLevel: Math.min(3, Math.max(0.5, prev.projectZoomLevel + amount)),
+    }));
+  };
+
+  resetProjectZoom = () => this.setState({ projectZoomLevel: 1 });
 
   toggleNavMenu = () => {
     this.setState((prev) => ({
@@ -753,12 +779,41 @@ class App extends Component<{}, AppState> {
       scoreX,
       scoreO,
       hiddenDescriptionIds,
+      selectedProject,
+      projectZoomLevel,
     } = this.state;
 
     const winner = this.calculateWinner(board);
     const isBoardFull = board.every((square) => square !== null);
     const completedCount = tasks.filter((task) => task.completed).length;
     const activeTrack = this.bgMusicTracks[currentTrackIndex];
+
+    const dataProjects: (ProjectPreview & { category: string; repo: string; number: string })[] = [
+      {
+        title: 'Airbnb Rent Pressures', category: 'Housing · Short-term rentals',
+        description: 'Explore how short-term rental activity may relate to housing availability and rent pressure. The project brings housing and tourism questions into a data-driven analysis, helping highlight patterns and areas for further investigation.',
+        image: `${this.baseUrl}/img/projects/airbnb-rent-pressures.png`, alt: 'Visualization for the Airbnb rent pressures analysis',
+        repo: 'https://github.com/Dinistpn/Airbnb-Rent-Pressures', number: '01',
+      },
+      {
+        title: 'Housing & Tourism Analysis', category: 'Urban data · Tourism',
+        description: 'Investigate the relationship between tourism activity and housing-related indicators. This project frames urban change as an analytical question and uses data to explore trends and potential connections.',
+        image: `${this.baseUrl}/img/projects/housing-tourism-analysis.png`, alt: 'Visualization for the housing and tourism analysis',
+        repo: 'https://github.com/Dinistpn/housing-tourism-analysis', number: '02',
+      },
+      {
+        title: 'Data Games', category: 'Exploratory analysis · Data visualization',
+        description: 'A data-focused project built around games and playful exploration. Use the repository to see how the data is organized, what questions are explored, and how the results are presented.',
+        image: `${this.baseUrl}/img/projects/data-games.png`, alt: 'Preview image for the Data Games project',
+        repo: 'https://github.com/Dinistpn/data-games', number: '03',
+      },
+      {
+        title: 'Retail Sales Analytics', category: 'Business intelligence · Sales',
+        description: 'Analyze retail performance through sales trends, product and customer patterns, and business-focused metrics. The project presents an opportunity to turn transaction data into useful insights for understanding performance and supporting decisions.',
+        image: `${this.baseUrl}/img/projects/retail-sales-analytics.png`, alt: 'Dashboard preview for the retail sales analytics project',
+        repo: 'https://github.com/Dinistpn/Retail-Sales-Analytics', number: '04',
+      },
+    ];
 
     const navItems: { tab: TabName; label: string }[] = [
       { tab: 'home', label: 'Home' },
@@ -915,51 +970,22 @@ class App extends Component<{}, AppState> {
               </header>
 
               <div className="row g-4">
-                {[
-                  {
-                    title: 'Airbnb Rent Pressures',
-                    category: 'Housing · Short-term rentals',
-                    description: 'Explore how short-term rental activity may relate to housing availability and rent pressure. The project brings housing and tourism questions into a data-driven analysis, helping highlight patterns and areas for further investigation.',
-                    image: `${this.baseUrl}/img/projects/airbnb-rent-pressures.png`,
-                    alt: 'Visualization for the Airbnb rent pressures analysis',
-                    repo: 'https://github.com/Dinistpn/Airbnb-Rent-Pressures',
-                    number: '01',
-                  },
-                  {
-                    title: 'Housing & Tourism Analysis',
-                    category: 'Urban data · Tourism',
-                    description: 'Investigate the relationship between tourism activity and housing-related indicators. This project frames urban change as an analytical question and uses data to explore trends and potential connections.',
-                    image: `${this.baseUrl}/img/projects/housing-tourism-analysis.png`,
-                    alt: 'Visualization for the housing and tourism analysis',
-                    repo: 'https://github.com/Dinistpn/housing-tourism-analysis',
-                    number: '02',
-                  },
-                  {
-                    title: 'Data Games',
-                    category: 'Exploratory analysis · Data visualization',
-                    description: 'A data-focused project built around games and playful exploration. Use the repository to see how the data is organized, what questions are explored, and how the results are presented.',
-                    image: `${this.baseUrl}/img/projects/data-games.png`,
-                    alt: 'Preview image for the Data Games project',
-                    repo: 'https://github.com/Dinistpn/data-games',
-                    number: '03',
-                  },
-                  {
-                    title: 'Retail Sales Analytics',
-                    category: 'Business intelligence · Sales',
-                    description: 'Analyze retail performance through sales trends, product and customer patterns, and business-focused metrics. The project presents an opportunity to turn transaction data into useful insights for understanding performance and supporting decisions.',
-                    image: `${this.baseUrl}/img/projects/retail-sales-analytics.png`,
-                    alt: 'Dashboard preview for the retail sales analytics project',
-                    repo: 'https://github.com/Dinistpn/Retail-Sales-Analytics',
-                    number: '04',
-                  },
-                ].map((project) => (
+                {dataProjects.map((project) => (
                   <div className="col-12 col-md-6" key={project.number}>
                     <article className="card h-100 border-0 shadow-sm project-card overflow-hidden">
-                      <div className="project-image-wrap position-relative">
+                      <div
+                        className="project-image-wrap position-relative"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Open ${project.title} image full screen`}
+                        onClick={() => this.openProjectPreview(project)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.openProjectPreview(project); } }}
+                      >
                         <div className="project-image-placeholder d-flex flex-column align-items-center justify-content-center text-center p-4" aria-hidden="true">
                           <span className="project-number mb-2">{project.number}</span>
                           <span className="fw-semibold">Project preview</span>
                           <span className="small opacity-75">Add an image to public/img/projects</span>
+                          <span className="small mt-2">Select to enlarge</span>
                         </div>
                         <img
                           src={project.image}
@@ -982,14 +1008,60 @@ class App extends Component<{}, AppState> {
                 ))}
               </div>
 
+              {selectedProject && (
+                <div
+                  className="project-lightbox"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label={`${selectedProject.title} image preview`}
+                  onClick={this.closeProjectPreview}
+                  onKeyDown={(e) => { if (e.key === 'Escape') this.closeProjectPreview(); }}
+                >
+                  <div className="project-lightbox-panel" onClick={(e) => e.stopPropagation()}>
+                    <div className="project-lightbox-header">
+                      <div>
+                        <h2 className="h5 mb-1">{selectedProject.title}</h2>
+                        <p className="small text-white-50 mb-0">Use the controls to zoom in or out.</p>
+                      </div>
+                      <button type="button" className="btn btn-outline-light btn-sm" onClick={this.closeProjectPreview} aria-label="Close full-screen image">✕ Close</button>
+                    </div>
+                    <div className="project-lightbox-stage">
+                      <img
+                        src={selectedProject.image}
+                        alt={selectedProject.alt}
+                        className="project-lightbox-image"
+                        style={{ transform: `scale(${projectZoomLevel})` }}
+                        onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                      />
+                    </div>
+                    <div className="project-lightbox-controls">
+                      <button type="button" className="btn btn-outline-light btn-sm" onClick={() => this.zoomProjectImage(-0.25)} disabled={projectZoomLevel <= 0.5}>− Zoom out</button>
+                      <span className="small" aria-live="polite">{Math.round(projectZoomLevel * 100)}%</span>
+                      <button type="button" className="btn btn-outline-light btn-sm" onClick={() => this.zoomProjectImage(0.25)} disabled={projectZoomLevel >= 3}>＋ Zoom in</button>
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={this.resetProjectZoom}>Reset</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <style>{`
                 .data-projects { color: #172033; }
                 .project-card { border-radius: 1rem; transition: transform .2s ease, box-shadow .2s ease; }
                 .project-card:hover { transform: translateY(-4px); box-shadow: 0 1rem 2rem rgba(24, 39, 75, .12) !important; }
-                .project-image-wrap { height: 220px; overflow: hidden; background: #e9eef8; }
+                .project-image-wrap { height: 220px; overflow: hidden; background: #e9eef8; cursor: zoom-in; }
+                .project-image-wrap:focus-visible { outline: 3px solid #2563eb; outline-offset: -3px; }
                 .project-image-placeholder { position: absolute; inset: 0; color: #fff; background: linear-gradient(135deg, #172554, #2563eb 58%, #67e8f9); }
                 .project-number { font-size: 2.5rem; line-height: 1; font-weight: 800; opacity: .9; }
                 .project-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+                .project-lightbox { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(3, 7, 18, .94); color: #fff; }
+                .project-lightbox-panel { display: flex; flex-direction: column; width: min(1200px, 100%); height: min(92dvh, 900px); background: #0b1120; border: 1px solid rgba(255,255,255,.15); border-radius: 1rem; overflow: hidden; }
+                .project-lightbox-header, .project-lightbox-controls { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .85rem 1rem; flex-shrink: 0; }
+                .project-lightbox-header { border-bottom: 1px solid rgba(255,255,255,.12); }
+                .project-lightbox-controls { justify-content: center; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,.12); }
+                .project-lightbox-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 1rem; }
+                .project-lightbox-image { display: block; max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center center; transition: transform .15s ease; }
+                .project-lightbox-stage:has(.project-lightbox-image[style*="visibility: hidden"])::after { content: 'Image not uploaded yet. Add the project image to public/img/projects to preview it here.'; color: #cbd5e1; text-align: center; max-width: 28rem; }
+                @media (max-width: 575.98px) { .project-lightbox { padding: .35rem; } .project-lightbox-panel { height: 96dvh; border-radius: .65rem; } .project-lightbox-header { padding: .7rem; } .project-lightbox-controls { gap: .45rem; padding: .7rem .35rem; } }
                 .project-category { letter-spacing: .08em; font-size: .72rem; }
                 @media (max-width: 575.98px) { .project-image-wrap { height: 185px; } }
                 @media (prefers-reduced-motion: reduce) { .project-card { transition: none; } .project-card:hover { transform: none; } }
