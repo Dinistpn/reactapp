@@ -49,6 +49,15 @@ interface AppState {
   navMenuOpen: boolean;
   currentTime: Date;
 
+  // ... existing state properties ...
+  board: (string | null)[];
+  xIsNext: boolean;
+  startingPlayer: boolean; // 👈 ADD THIS LINE
+  scoreX: number;
+  scoreO: number;
+  gameHasEnded: boolean;
+  // ...
+  
   tasks: Task[];
   taskInput: string;
   editingTaskId: number | null;
@@ -263,6 +272,7 @@ class App extends Component<{}, AppState> {
 
       board: Array(25).fill(null),
       xIsNext: true,
+      startingPlayer: true,
       scoreX: 0,
       scoreO: 0,
       gameHasEnded: false,
@@ -314,6 +324,7 @@ class App extends Component<{}, AppState> {
     this.handlePopState();
     window.addEventListener('popstate', this.handlePopState);
     window.addEventListener('hashchange', this.handlePopState);
+    window.addEventListener('keydown', this.handleKeyDown);
 
     this.timerID = setInterval(() => {
       this.setState({ currentTime: new Date() });
@@ -324,6 +335,7 @@ class App extends Component<{}, AppState> {
     if (this.timerID) clearInterval(this.timerID);
     window.removeEventListener('popstate', this.handlePopState);
     window.removeEventListener('hashchange', this.handlePopState);
+    window.removeEventListener('keydown', this.handleKeyDown);
 
     if (document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => undefined);
@@ -528,6 +540,8 @@ class App extends Component<{}, AppState> {
     }));
   };
 
+  
+
   zoomOut = () => {
     this.setState((prev) => {
       const newZoom = Math.max(prev.zoomLevel - 0.25, 0.5);
@@ -538,7 +552,19 @@ class App extends Component<{}, AppState> {
       };
     });
   };
-
+  
+  // 👈handleWheelZoom:
+  handleWheelZoom = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (this.state.selectedImgIndex !== null) {
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        this.zoomIn();
+      } else {
+        this.zoomOut();
+      }
+    }
+  };
+  
   resetZoom = () => {
     this.setState({
       zoomLevel: 1,
@@ -681,6 +707,7 @@ window.addEventListener("keydown", (event) => {
       let updatedScoreX = prev.scoreX;
       let updatedScoreO = prev.scoreO;
       let isEnded = false;
+      let nextStartingPlayer = prev.startingPlayer;
 
       if (winner) {
         isEnded = true;
@@ -689,14 +716,17 @@ window.addEventListener("keydown", (event) => {
         if (winner === 'O') updatedScoreO += 1;
 
         this.playSFX(this.sfx.gameOver);
+        nextStartingPlayer = !prev.startingPlayer;
       } else if (newBoard.every((square) => square !== null)) {
         isEnded = true;
         this.playSFX(this.sfx.gameOver);
+        nextStartingPlayer = !prev.startingPlayer;
       }
 
       return {
         board: newBoard,
         xIsNext: !xIsNext,
+        startingPlayer: nextStartingPlayer,
         scoreX: updatedScoreX,
         scoreO: updatedScoreO,
         gameHasEnded: isEnded,
@@ -709,7 +739,7 @@ window.addEventListener("keydown", (event) => {
 
     this.setState({
       board: Array(25).fill(null),
-      xIsNext: true,
+      xIsNext: prev.startingPlayer,
       gameHasEnded: false,
     });
   };
@@ -1309,6 +1339,7 @@ window.addEventListener("keydown", (event) => {
                       display: 'flex',
                       flexDirection: 'column',
                     }}
+                    onWheel={this.handleWheelZoom}
                     onMouseMove={this.handleMouseMove}
                     onMouseUp={this.handleMouseUp}
                     onMouseLeave={this.handleMouseUp}
