@@ -1,4 +1,3 @@
-
 import React, { Component } from 'react';
 
 // Interfaces
@@ -49,15 +48,6 @@ interface AppState {
   navMenuOpen: boolean;
   currentTime: Date;
 
-  // ... existing state properties ...
-  board: (string | null)[];
-  xIsNext: boolean;
-  startingPlayer: boolean; // 👈 ADD THIS LINE
-  scoreX: number;
-  scoreO: number;
-  gameHasEnded: boolean;
-  // ...
-  
   tasks: Task[];
   taskInput: string;
   editingTaskId: number | null;
@@ -78,6 +68,7 @@ interface AppState {
 
   board: (string | null)[];
   xIsNext: boolean;
+  startingPlayer: boolean;
   scoreX: number;
   scoreO: number;
   gameHasEnded: boolean;
@@ -91,116 +82,36 @@ class App extends Component<{}, AppState> {
 
   baseUrl = process.env.PUBLIC_URL || '.';
 
-  // Gallery titles and descriptions
   private galleryDetails: {
     title: string;
     description: string;
   }[] = [
-    {
-      title: 'Venice',
-      description: 'A beautiful view from Venice.',
-    },
-    {
-      title: 'Praia da Barra',
-      description: 'View from Pier in Portugal beach.',
-    },
-    {
-      title: 'Warsaw',
-      description:
-        'One of the most iconic buildings in the Capital of Poland, despite the past.',
-    },
-    {
-      title: 'Praia da Barra',
-      description: 'View from the beach in Portugal.',
-    },
-    {
-      title: 'Mountain Landscape',
-      description: 'Oil painting with mountains.',
-    },
-    {
-      title: 'Bay',
-      description: 'Artistic oil painting of an imaginary bay.',
-    },
-    {
-      title: 'View from ruins',
-      description: 'Painting of old ruins.',
-    },
-    {
-      title: 'Bay from the top',
-      description: 'Oil painting of a bay from the top.',
-    },
-    {
-      title: 'Venice Lagoon Island',
-      description: 'An island in the lagoon of Venice.',
-    },
-    {
-      title: 'Oriental',
-      description: 'Oil painting of an old ruin.',
-    },
-    {
-      title: 'Mountain',
-      description: 'A beautiful view of the mountains at sunset.',
-    },
-    {
-      title: 'Mountains passage',
-      description: 'A beautiful view of a mountain passage.',
-    },
-    {
-      title: 'Mountain Landscape',
-      description: 'A beautiful view of the mountains at sunset.',
-    },
-    {
-      title: 'City at Night',
-      description: 'A city skyline illuminated after dark.',
-    },
-    {
-      title: 'Mountain Landscape',
-      description: 'A beautiful view of the mountains at sunset.',
-    },
-    {
-      title: 'City at Night',
-      description: 'A city skyline illuminated after dark.',
-    },
-    {
-      title: 'Mountain Landscape',
-      description: 'A beautiful view of the mountains at sunset.',
-    },
-    {
-      title: 'City at Night',
-      description: 'A city skyline illuminated after dark.',
-    },
-    {
-      title: 'Mountain Landscape',
-      description: 'A beautiful view of the mountains at sunset.',
-    },
-    {
-      title: 'City at Night',
-      description: 'A city skyline illuminated after dark.',
-    },
-    {
-      title: 'Mountain Landscape',
-      description: 'A beautiful view of the mountains at sunset.',
-    },
-    {
-      title: 'City at Night',
-      description: 'A city skyline illuminated after dark.',
-    },
-    {
-      title: 'Mountain Landscape',
-      description: 'A beautiful view of the mountains at sunset.',
-    },
-    {
-      title: 'City at Night',
-      description: 'A city skyline illuminated after dark.',
-    },
-    {
-      title: 'Mountain Landscape',
-      description: 'A beautiful view of the mountains at sunset.',
-    },
-    {
-      title: 'City at Night',
-      description: 'A city skyline illuminated after dark.',
-    },
+    { title: 'Venice', description: 'A beautiful view from Venice.' },
+    { title: 'Praia da Barra', description: 'View from Pier in Portugal beach.' },
+    { title: 'Warsaw', description: 'One of the most iconic buildings in the Capital of Poland, despite the past.' },
+    { title: 'Praia da Barra', description: 'View from the beach in Portugal.' },
+    { title: 'Mountain Landscape', description: 'Oil painting with mountains.' },
+    { title: 'Bay', description: 'Artistic oil painting of an imaginary bay.' },
+    { title: 'View from ruins', description: 'Painting of old ruins.' },
+    { title: 'Bay from the top', description: 'Oil painting of a bay from the top.' },
+    { title: 'Venice Lagoon Island', description: 'An island in the lagoon of Venice.' },
+    { title: 'Oriental', description: 'Oil painting of an old ruin.' },
+    { title: 'Mountain', description: 'A beautiful view of the mountains at sunset.' },
+    { title: 'Mountains passage', description: 'A beautiful view of a mountain passage.' },
+    { title: 'Mountain Landscape', description: 'A beautiful view of the mountains at sunset.' },
+    { title: 'City at Night', description: 'A city skyline illuminated after dark.' },
+    { title: 'Mountain Landscape', description: 'A beautiful view of the mountains at sunset.' },
+    { title: 'City at Night', description: 'A city skyline illuminated after dark.' },
+    { title: 'Mountain Landscape', description: 'A beautiful view of the mountains at sunset.' },
+    { title: 'City at Night', description: 'A city skyline illuminated after dark.' },
+    { title: 'Mountain Landscape', description: 'A beautiful view of the mountains at sunset.' },
+    { title: 'City at Night', description: 'A city skyline illuminated after dark.' },
+    { title: 'Mountain Landscape', description: 'A beautiful view of the mountains at sunset.' },
+    { title: 'City at Night', description: 'A city skyline illuminated after dark.' },
+    { title: 'Mountain Landscape', description: 'A beautiful view of the mountains at sunset.' },
+    { title: 'City at Night', description: 'A city skyline illuminated after dark.' },
+    { title: 'Mountain Landscape', description: 'A beautiful view of the mountains at sunset.' },
+    { title: 'City at Night', description: 'A city skyline illuminated after dark.' },
   ];
 
   galleryImages: GalleryImage[] = this.galleryDetails.map(
@@ -220,18 +131,8 @@ class App extends Component<{}, AppState> {
   );
 
   bgMusicTracks: AudioTrack[] = [
-    {
-      id: 1,
-      title: 'Track 1',
-      artist: 'Repository Track',
-      src: `${this.baseUrl}/sound/1.m4a`,
-    },
-    {
-      id: 2,
-      title: 'Track 2',
-      artist: 'Repository Track',
-      src: `${this.baseUrl}/sound/2.m4a`,
-    },
+    { id: 1, title: 'Track 1', artist: 'Repository Track', src: `${this.baseUrl}/sound/1.m4a` },
+    { id: 2, title: 'Track 2', artist: 'Repository Track', src: `${this.baseUrl}/sound/2.m4a` },
   ];
 
   sfx = {
@@ -281,16 +182,12 @@ class App extends Component<{}, AppState> {
 
   private getBasePath = () => {
     const publicUrl = process.env.PUBLIC_URL;
-    return publicUrl && publicUrl !== '.'
-      ? publicUrl.replace(/\/$/, '')
-      : '';
+    return publicUrl && publicUrl !== '.' ? publicUrl.replace(/\/$/, '') : '';
   };
 
   private routeForTab = (tab: TabName) =>
     tab === 'home' ? '/' : tab === 'data analysis' ? '/data-analysis' : `/${tab}`;
 
-  // Hash-based routes work on static hosting too, so refreshing a subpage does not
-  // require the server to rewrite /data-analysis, /gallery, etc. to index.html.
   private tabToPath = (tab: TabName) => `#${this.routeForTab(tab)}`;
 
   private handlePopState = () => {
@@ -305,7 +202,6 @@ class App extends Component<{}, AppState> {
       '/about': 'about',
     };
 
-    // Prefer the refresh-safe hash route; accept old pathname URLs for compatibility.
     const hashRoute = window.location.hash.startsWith('#/')
       ? window.location.hash.slice(1).replace(/\/+$/, '') || '/'
       : null;
@@ -318,6 +214,20 @@ class App extends Component<{}, AppState> {
     }
 
     this.setState({ activeTab: routes[path] || 'home', navMenuOpen: false });
+  };
+
+  handleKeyDown = (event: KeyboardEvent) => {
+    if (this.state.selectedImgIndex !== null) {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        this.prevGalleryImage();
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        this.nextGalleryImage();
+      } else if (event.key === 'Escape') {
+        this.closeGalleryModal();
+      }
+    }
   };
 
   componentDidMount() {
@@ -403,9 +313,7 @@ class App extends Component<{}, AppState> {
   toggleTaskCompletion = (id: number) => {
     this.setState((prev) => ({
       tasks: prev.tasks.map((task) =>
-        task.id === id
-          ? { ...task, completed: !task.completed }
-          : task
+        task.id === id ? { ...task, completed: !task.completed } : task
       ),
     }));
   };
@@ -473,13 +381,10 @@ class App extends Component<{}, AppState> {
     }
   };
 
-  // Hide or show the title and description for an individual image.
   toggleGalleryDescription = (id: number) => {
     this.setState((prev) => ({
       hiddenDescriptionIds: prev.hiddenDescriptionIds.includes(id)
-        ? prev.hiddenDescriptionIds.filter(
-            (hiddenId) => hiddenId !== id
-          )
+        ? prev.hiddenDescriptionIds.filter((hiddenId) => hiddenId !== id)
         : [...prev.hiddenDescriptionIds, id],
     }));
   };
@@ -503,7 +408,6 @@ class App extends Component<{}, AppState> {
     }
   };
 
-
   prevGalleryImage = () => {
     this.setState((prev) => {
       if (prev.selectedImgIndex === null) return null;
@@ -526,8 +430,7 @@ class App extends Component<{}, AppState> {
       if (prev.selectedImgIndex === null) return null;
 
       return {
-        selectedImgIndex:
-          (prev.selectedImgIndex + 1) % this.galleryImages.length,
+        selectedImgIndex: (prev.selectedImgIndex + 1) % this.galleryImages.length,
         zoomLevel: 1,
         position: { x: 0, y: 0 },
       };
@@ -540,8 +443,6 @@ class App extends Component<{}, AppState> {
     }));
   };
 
-  
-
   zoomOut = () => {
     this.setState((prev) => {
       const newZoom = Math.max(prev.zoomLevel - 0.25, 0.5);
@@ -552,8 +453,7 @@ class App extends Component<{}, AppState> {
       };
     });
   };
-  
-  // 👈handleWheelZoom:
+
   handleWheelZoom = (e: React.WheelEvent<HTMLDivElement>) => {
     if (this.state.selectedImgIndex !== null) {
       e.preventDefault();
@@ -564,7 +464,7 @@ class App extends Component<{}, AppState> {
       }
     }
   };
-  
+
   resetZoom = () => {
     this.setState({
       zoomLevel: 1,
@@ -679,17 +579,6 @@ class App extends Component<{}, AppState> {
     });
   };
 
-// Add the keyboard event listener
-window.addEventListener("keydown", (event) => {
-  // Optional: prevent default scrolling behavior for arrow keys
-  if (event.key === "ArrowLeft") {
-    prevGalleryImage();
-  } else if (event.key === "ArrowRight") {
-    nextGalleryImage();
-  }
-});
-
-
   // 5x5 Tic-Tac-Toe
   handleSquareClick = (index: number) => {
     const { board, xIsNext, gameHasEnded } = this.state;
@@ -737,11 +626,11 @@ window.addEventListener("keydown", (event) => {
   resetGame = () => {
     this.playSFX(this.sfx.preparing);
 
-    this.setState({
+    this.setState((prev) => ({
       board: Array(25).fill(null),
       xIsNext: prev.startingPlayer,
       gameHasEnded: false,
-    });
+    }));
   };
 
   resetScores = () => {
@@ -752,6 +641,7 @@ window.addEventListener("keydown", (event) => {
       scoreO: 0,
       board: Array(25).fill(null),
       xIsNext: true,
+      startingPlayer: true,
       gameHasEnded: false,
     });
   };
@@ -826,34 +716,44 @@ window.addEventListener("keydown", (event) => {
     } = this.state;
 
     const winner = this.calculateWinner(board);
-    const isBoardFull = board.every((square) => square !== null);
-    const completedCount = tasks.filter((task) => task.completed).length;
     const activeTrack = this.bgMusicTracks[currentTrackIndex];
 
-    const dataProjects: (ProjectPreview & { category: string; repo: string; number: string })[] = [
+    const dataProjects = [
       {
-        title: 'Airbnb Rent Pressures', category: 'Housing · Short-term rentals',
-        description: 'Explore how short-term rental activity may relate to housing availability and rent pressure. The project brings housing and tourism questions into a data-driven analysis, helping highlight patterns and areas for further investigation.',
-        image: `${this.baseUrl}/img/projects/airbnb-rent-pressures.png`, alt: 'Visualization for the Airbnb rent pressures analysis',
-        repo: 'https://github.com/Dinistpn/Airbnb-Rent-Pressures', number: '01',
+        title: 'Airbnb Rent Pressures',
+        category: 'Housing · Short-term rentals',
+        description: 'Explore how short-term rental activity may relate to housing availability and rent pressure.',
+        image: `${this.baseUrl}/img/projects/airbnb-rent-pressures.png`,
+        alt: 'Visualization for the Airbnb rent pressures analysis',
+        repo: 'https://github.com/Dinistpn/Airbnb-Rent-Pressures',
+        number: '01',
       },
       {
-        title: 'Housing & Tourism Analysis', category: 'Urban data · Tourism',
-        description: 'Investigate the relationship between tourism activity and housing-related indicators. This project frames urban change as an analytical question and uses data to explore trends and potential connections.',
-        image: `${this.baseUrl}/img/projects/housing-tourism-analysis.png`, alt: 'Visualization for the housing and tourism analysis',
-        repo: 'https://github.com/Dinistpn/housing-tourism-analysis', number: '02',
+        title: 'Housing & Tourism Analysis',
+        category: 'Urban data · Tourism',
+        description: 'Investigate the relationship between tourism activity and housing-related indicators.',
+        image: `${this.baseUrl}/img/projects/housing-tourism-analysis.png`,
+        alt: 'Visualization for the housing and tourism analysis',
+        repo: 'https://github.com/Dinistpn/housing-tourism-analysis',
+        number: '02',
       },
       {
-        title: 'Data Games', category: 'Exploratory analysis · Data visualization',
-        description: 'A data-focused project built around games and playful exploration. Use the repository to see how the data is organized, what questions are explored, and how the results are presented.',
-        image: `${this.baseUrl}/img/projects/data-games.png`, alt: 'Preview image for the Data Games project',
-        repo: 'https://github.com/Dinistpn/data-games', number: '03',
+        title: 'Data Games',
+        category: 'Exploratory analysis · Data visualization',
+        description: 'A data-focused project built around games and playful exploration.',
+        image: `${this.baseUrl}/img/projects/data-games.png`,
+        alt: 'Preview image for the Data Games project',
+        repo: 'https://github.com/Dinistpn/data-games',
+        number: '03',
       },
       {
-        title: 'Retail Sales Analytics', category: 'Business intelligence · Sales',
-        description: 'Analyze retail performance through sales trends, product and customer patterns, and business-focused metrics. The project presents an opportunity to turn transaction data into useful insights for understanding performance and supporting decisions.',
-        image: `${this.baseUrl}/img/projects/retail-sales-analytics.png`, alt: 'Dashboard preview for the retail sales analytics project',
-        repo: 'https://github.com/Dinistpn/Retail-Sales-Analytics', number: '04',
+        title: 'Retail Sales Analytics',
+        category: 'Business intelligence · Sales',
+        description: 'Analyze retail performance through sales trends and business-focused metrics.',
+        image: `${this.baseUrl}/img/projects/retail-sales-analytics.png`,
+        alt: 'Dashboard preview for the retail sales analytics project',
+        repo: 'https://github.com/Dinistpn/Retail-Sales-Analytics',
+        number: '04',
       },
     ];
 
@@ -962,20 +862,13 @@ window.addEventListener("keydown", (event) => {
           </div>
         </div>
 
-        <main
-          className="container-fluid px-3 my-3 flex-grow-1 mx-auto"
-          style={{ maxWidth: '850px' }}
-        >
+        <main className="container-fluid px-3 my-3 flex-grow-1 mx-auto" style={{ maxWidth: '850px' }}>
           {/* Home */}
           {activeTab === 'home' && (
             <div className="text-center py-4 py-md-5">
               <h1 className="display-5 fw-bold mb-3">Welcome to my React App!</h1>
 
-              <div
-                className="card mx-auto my-4 p-3 shadow-sm bg-dark text-white"
-                style={{ maxWidth: '280px' }}
-              >
-                
+              <div className="card mx-auto my-4 p-3 shadow-sm bg-dark text-white" style={{ maxWidth: '280px' }}>
                 <small className="text-muted text-uppercase tracking-wide">
                   Current Time
                 </small>
@@ -991,13 +884,7 @@ window.addEventListener("keydown", (event) => {
                 This mobile-optimized React application was created to practice with Javascript and to show of my work. There is a menu that includes a page that includes some of the projects related with data analysis, to manage tasks,
                 view photos with zoom and pan gestures, listen to music, or play Tic-Tac-Toe on any device.
               </p>
-              <h2 className="fw-mono mt-1 mb-0 fs-3">
-                  <p className="lead text-muted fs-6 px-2">
-                    Hope you enjoy this App.
-                  </p>
-              </h2>
             </div>
-        
           )}
 
           {/* Data Analysis Projects */}
@@ -1006,9 +893,6 @@ window.addEventListener("keydown", (event) => {
               <header className="text-center mb-4 mb-md-5">
                 <span className="badge rounded-pill text-bg-primary mb-3 px-3 py-2">Portfolio</span>
                 <h1 className="display-6 fw-bold mb-3">Data Analysis Projects</h1>
-                <p className="lead text-secondary mx-auto mb-0" style={{ maxWidth: '680px' }}>
-                  A selection of projects exploring real-world questions with data — from housing and tourism pressures to games and retail performance. Open a project to explore its code, analysis, and findings.
-                </p>
               </header>
 
               <div className="row g-4">
@@ -1019,542 +903,180 @@ window.addEventListener("keydown", (event) => {
                         className="project-image-wrap position-relative"
                         role="button"
                         tabIndex={0}
-                        aria-label={`Open ${project.title} image full screen`}
                         onClick={() => this.openProjectPreview(project)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.openProjectPreview(project); } }}
                       >
-                        <div className="project-image-placeholder d-flex flex-column align-items-center justify-content-center text-center p-4" aria-hidden="true">
+                        <div className="project-image-placeholder d-flex flex-column align-items-center justify-content-center text-center p-4">
                           <span className="project-number mb-2">{project.number}</span>
                           <span className="fw-semibold">Project preview</span>
-                          <span className="small opacity-75">Add an image to public/img/projects</span>
                           <span className="small mt-2">Select to enlarge</span>
                         </div>
-                        <img
-                          src={project.image}
-                          alt={project.alt}
-                          className="project-image"
-                          loading="lazy"
-                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                        />
+                        <img src={project.image} alt={project.alt} className="project-image" loading="lazy" />
                       </div>
                       <div className="card-body p-4 d-flex flex-column">
-                        <p className="text-primary text-uppercase fw-semibold small mb-2 project-category">{project.category}</p>
+                        <p className="text-primary text-uppercase fw-semibold small mb-2">{project.category}</p>
                         <h2 className="h4 fw-bold mb-3">{project.title}</h2>
                         <p className="text-secondary mb-4">{project.description}</p>
-                        <div className="mt-auto d-flex flex-wrap gap-2">
-                          <a className="btn btn-primary rounded-pill px-4" href={project.repo} target="_blank" rel="noreferrer">View on GitHub <span aria-hidden="true">↗</span></a>
+                        <div className="mt-auto">
+                          <a className="btn btn-primary rounded-pill px-4" href={project.repo} target="_blank" rel="noreferrer">
+                            View on GitHub ↗
+                          </a>
                         </div>
                       </div>
                     </article>
                   </div>
                 ))}
               </div>
-
-              {selectedProject && (
-                <div
-                  className="project-lightbox"
-                  role="dialog"
-                  aria-modal="true"
-                  aria-label={`${selectedProject.title} image preview`}
-                  onClick={this.closeProjectPreview}
-                  onKeyDown={(e) => { if (e.key === 'Escape') this.closeProjectPreview(); }}
-                >
-                  <div className="project-lightbox-panel" onClick={(e) => e.stopPropagation()}>
-                    <div className="project-lightbox-header">
-                      <div>
-                        <h2 className="h5 mb-1">{selectedProject.title}</h2>
-                        <p className="small text-white-50 mb-0">Use the controls to zoom in or out.</p>
-                      </div>
-                      <button type="button" className="btn btn-outline-light btn-sm" onClick={this.closeProjectPreview} aria-label="Close full-screen image">✕ Close</button>
-                    </div>
-                    <div className="project-lightbox-stage">
-                      <img
-                        src={selectedProject.image}
-                        alt={selectedProject.alt}
-                        className="project-lightbox-image"
-                        style={{ transform: `scale(${projectZoomLevel})` }}
-                        onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
-                      />
-                    </div>
-                    <div className="project-lightbox-controls">
-                      <button type="button" className="btn btn-outline-light btn-sm" onClick={() => this.zoomProjectImage(-0.25)} disabled={projectZoomLevel <= 0.5}>− Zoom out</button>
-                      <span className="small" aria-live="polite">{Math.round(projectZoomLevel * 100)}%</span>
-                      <button type="button" className="btn btn-outline-light btn-sm" onClick={() => this.zoomProjectImage(0.25)} disabled={projectZoomLevel >= 3}>＋ Zoom in</button>
-                      <button type="button" className="btn btn-secondary btn-sm" onClick={this.resetProjectZoom}>Reset</button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <style>{`
-                .data-projects { color: #172033; }
-                .project-card { border-radius: 1rem; transition: transform .2s ease, box-shadow .2s ease; }
-                .project-card:hover { transform: translateY(-4px); box-shadow: 0 1rem 2rem rgba(24, 39, 75, .12) !important; }
-                .project-image-wrap { height: 220px; overflow: hidden; background: #e9eef8; cursor: zoom-in; }
-                .project-image-wrap:focus-visible { outline: 3px solid #2563eb; outline-offset: -3px; }
-                .project-image-placeholder { position: absolute; inset: 0; color: #fff; background: linear-gradient(135deg, #172554, #2563eb 58%, #67e8f9); }
-                .project-number { font-size: 2.5rem; line-height: 1; font-weight: 800; opacity: .9; }
-                .project-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-                .project-lightbox { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(3, 7, 18, .94); color: #fff; }
-                .project-lightbox-panel { display: flex; flex-direction: column; width: min(1200px, 100%); height: min(92dvh, 900px); background: #0b1120; border: 1px solid rgba(255,255,255,.15); border-radius: 1rem; overflow: hidden; }
-                .project-lightbox-header, .project-lightbox-controls { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .85rem 1rem; flex-shrink: 0; }
-                .project-lightbox-header { border-bottom: 1px solid rgba(255,255,255,.12); }
-                .project-lightbox-controls { justify-content: center; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,.12); }
-                .project-lightbox-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 1rem; }
-                .project-lightbox-image { display: block; max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center center; transition: transform .15s ease; }
-                .project-lightbox-stage:has(.project-lightbox-image[style*="visibility: hidden"])::after { content: 'Image not uploaded yet. Add the project image to public/img/projects to preview it here.'; color: #cbd5e1; text-align: center; max-width: 28rem; }
-                @media (max-width: 575.98px) { .project-lightbox { padding: .35rem; } .project-lightbox-panel { height: 96dvh; border-radius: .65rem; } .project-lightbox-header { padding: .7rem; } .project-lightbox-controls { gap: .45rem; padding: .7rem .35rem; } }
-                .project-category { letter-spacing: .08em; font-size: .72rem; }
-                @media (max-width: 575.98px) { .project-image-wrap { height: 185px; } }
-                @media (prefers-reduced-motion: reduce) { .project-card { transition: none; } .project-card:hover { transform: none; } }
-              `}</style>
             </section>
           )}
 
-          {/* Tasks */}
+          {/* Tasks Tab */}
           {activeTab === 'tasks' && (
-            <div>
-              <h3 className="mb-3 text-center">Task Tracker</h3>
-
-              <div className="input-group mb-3 shadow-sm">
+            <div className="py-3">
+              <h1 className="h3 fw-bold mb-4">Task Manager</h1>
+              <div className="input-group mb-3">
                 <input
                   type="text"
-                  className="form-control form-control-lg fs-6"
-                  placeholder="Type your task here..."
-                  aria-label="Introduce a Task"
+                  className="form-control"
+                  placeholder="Add a new task..."
                   value={taskInput}
                   onChange={this.handleInputChange}
                   onKeyDown={(e) => e.key === 'Enter' && this.addTask()}
                 />
-                <button
-                  type="button"
-                  className="btn btn-primary px-3"
-                  onClick={this.addTask}
-                >
-                  Submit
-                </button>
+                <button className="btn btn-primary" onClick={this.addTask}>Add Task</button>
               </div>
-
-              {completedCount > 0 && (
-                <div className="d-flex justify-content-end mb-3">
-                  <button
-                    className="btn btn-danger btn-sm shadow-sm"
-                    onClick={this.deleteAllSelectedTasks}
-                  >
-                    Delete Selected ({completedCount})
-                  </button>
-                </div>
-              )}
-
-              <div className="containerA">
-                {tasks.length === 0 ? (
-                  <div className="alert alert-info text-center shadow-sm py-3" role="alert">
-                    There are no tasks yet!
-                  </div>
-                ) : (
-                  <ul className="list-group shadow-sm">
-                    {tasks.map((task) => (
-                      <li
-                        key={task.id}
-                        className="list-group-item d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 py-2 px-3"
-                      >
-                        {editingTaskId === task.id ? (
-                          <div className="input-group w-100">
-                            <input
-                              type="text"
-                              className="form-control"
-                              value={editingTaskText}
-                              onChange={(e) =>
-                                this.setState({ editingTaskText: e.target.value })
-                              }
-                              onKeyDown={(e) =>
-                                e.key === 'Enter' && this.saveTaskEdit(task.id)
-                              }
-                            />
-                            <button
-                              className="btn btn-sm btn-success"
-                              onClick={() => this.saveTaskEdit(task.id)}
-                            >
-                              Save
-                            </button>
-                            <button
-                              className="btn btn-sm btn-secondary"
-                              onClick={this.cancelEditing}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="d-flex align-items-center w-100 text-break">
-                              <input
-                                type="checkbox"
-                                className="form-check-input me-3 flex-shrink-0"
-                                style={{
-                                  width: '1.25rem',
-                                  height: '1.25rem',
-                                  cursor: 'pointer',
-                                }}
-                                checked={task.completed}
-                                onChange={() => this.toggleTaskCompletion(task.id)}
-                              />
-                              <span
-                                style={{
-                                  textDecoration: task.completed ? 'line-through' : 'none',
-                                  color: task.completed ? '#6c757d' : '#212529',
-                                }}
-                              >
-                                {task.text}
-                              </span>
-                            </div>
-
-                            <div className="d-flex gap-2 ms-auto">
-                              <button
-                                className="btn btn-sm btn-outline-warning"
-                                onClick={() => this.startEditing(task)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="btn btn-sm btn-outline-danger"
-                                onClick={() => this.deleteTask(task.id)}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+              <ul className="list-group">
+                {tasks.map((task) => (
+                  <li key={task.id} className="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                      <input
+                        type="checkbox"
+                        className="form-check-input me-2"
+                        checked={task.completed}
+                        onChange={() => this.toggleTaskCompletion(task.id)}
+                      />
+                      <span style={{ textDecoration: task.completed ? 'line-through' : 'none' }}>
+                        {task.text}
+                      </span>
+                    </div>
+                    <button className="btn btn-sm btn-danger" onClick={() => this.deleteTask(task.id)}>Delete</button>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
-          {/* Gallery */}
+          {/* Gallery Tab */}
           {activeTab === 'gallery' && (
-            <div>
-              <h3 className="mb-2 text-center">Photo Gallery</h3>
-
-              <p className="text-center text-muted small mb-3">
-                Select an image for fullscreen viewing, zooming, and panning.
-                Use Hide details or Show details to control each image's title
-                and description.
-              </p>
-
-              <div className="row g-2 g-sm-3">
-                {this.galleryImages.map((img, idx) => {
-                  const detailsHidden = hiddenDescriptionIds.includes(img.id);
-
-                  return (
-                    <div key={img.id} className="col-6 col-sm-4 col-md-3">
-                      <div className="card shadow-sm h-100 border-0">
-                        <button
-                          type="button"
-                          className="border-0 bg-light p-0 d-flex align-items-center justify-content-center rounded-top"
-                          style={{
-                            height: '160px',
-                            overflow: 'hidden',
-                            cursor: 'pointer',
-                          }}
-                          onClick={() => this.openGalleryModal(idx)}
-                          aria-label={`Open ${img.title} in fullscreen`}
-                        >
-                          <img
-                            src={img.src}
-                            className="mw-100 mh-100"
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover',
-                            }}
-                            alt={img.alt}
-                            onError={(e) => {
-                              const target = e.currentTarget;
-                              const fallback = `./img/${img.fileName}`;
-                              if (!target.src.endsWith(fallback)) {
-                                target.src = fallback;
-                              }
-                            }}
-                          />
-                        </button>
-
-                        <div className="card-body p-2 text-center bg-white">
-                          {!detailsHidden && (
-                            <>
-                              <h6 className="fw-semibold text-dark mb-1">
-                                {img.title}
-                              </h6>
-                              <p className="small text-muted mb-2">
-                                {img.description}
-                              </p>
-                            </>
-                          )}
-
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-primary"
-                            onClick={() => this.toggleGalleryDescription(img.id)}
-                            aria-expanded={!detailsHidden}
-                            aria-label={`${detailsHidden ? 'Show' : 'Hide'} details for ${img.title}`}
-                          >
-                            {detailsHidden ? 'Show details' : 'Hide details'}
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-link d-block mx-auto mt-1"
-                            onClick={() => this.openGalleryModal(idx)}
-                          >
-                            Open image
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Fullscreen lightbox */}
-              {selectedImgIndex !== null && (() => {
-                const img = this.galleryImages[selectedImgIndex];
-                const detailsHidden = hiddenDescriptionIds.includes(img.id);
-
-                return (
-                  <div
-                    ref={this.modalContainerRef}
-                    className="gallery-lightbox"
-                    style={{
-                      position: 'fixed',
-                      inset: 0,
-                      width: '100vw',
-                      height: '100dvh',
-                      margin: 0,
-                      padding: 0,
-                      background: '#000',
-                      color: '#fff',
-                      zIndex: 2000,
-                      overflow: 'hidden',
-                      display: 'flex',
-                      flexDirection: 'column',
-                    }}
-                    onWheel={this.handleWheelZoom}
-                    onMouseMove={this.handleMouseMove}
-                    onMouseUp={this.handleMouseUp}
-                    onMouseLeave={this.handleMouseUp}
-                    onTouchMove={this.handleTouchMove}
-                    onTouchEnd={this.handleTouchEnd}
-                  >
-                    <div className="d-flex align-items-center gap-2 px-3 py-2 bg-dark flex-shrink-0">
-                      <h6 className="mb-0 me-auto text-truncate">
-                        {img.title} ({selectedImgIndex + 1}/{this.galleryImages.length})
-                      </h6>
-
-                      <button
-                        type="button"
-                        className="btn btn-outline-light btn-sm"
-                        onClick={this.toggleFullScreen}
-                        title="Toggle fullscreen"
-                        aria-label="Toggle fullscreen"
-                      >
-                        ⛶
-                      </button>
-
-                      <button
-                        type="button"
-                        className="btn btn-outline-light btn-sm"
-                        onClick={() => this.toggleGalleryDescription(img.id)}
-                        aria-expanded={!detailsHidden}
-                        aria-label={`${detailsHidden ? 'Show' : 'Hide'} details for ${img.title}`}
-                      >
-                        {detailsHidden ? 'Show details' : 'Hide details'}
-                      </button>
-
-                      <button
-                        type="button"
-                        className="btn-close btn-close-white"
-                        onClick={this.closeGalleryModal}
-                        aria-label="Close gallery"
-                      />
-                    </div>
-
-                    {!detailsHidden && (
-                      <div className="bg-dark text-white text-center px-3 py-2 flex-shrink-0">
-                        <strong>{img.title}</strong>
-                        <p className="small mb-0">{img.description}</p>
-                      </div>
-                    )}
-
+            <div className="py-3">
+              <h1 className="h3 fw-bold mb-4">Gallery</h1>
+              <div className="row g-3">
+                {this.galleryImages.map((img, idx) => (
+                  <div className="col-6 col-md-4 col-lg-3" key={img.id}>
                     <div
-                      className="flex-grow-1 d-flex align-items-center justify-content-center"
-                      style={{
-                        minHeight: 0,
-                        width: '100%',
-                        overflow: 'hidden',
-                        userSelect: 'none',
-                        touchAction: 'none',
-                      }}
+                      className="card h-100 shadow-sm"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => this.openGalleryModal(idx)}
                     >
-                      <img
-                        src={img.src}
-                        alt={img.alt}
-                        draggable={false}
-                        onMouseDown={this.handleMouseDown}
-                        onTouchStart={this.handleTouchStart}
-                        onError={(e) => {
-                          const target = e.currentTarget;
-                          const fallback = `./img/${img.fileName}`;
-                          if (!target.src.endsWith(fallback)) {
-                            target.src = fallback;
-                          }
-                        }}
-                        style={{
-                          display: 'block',
-                          maxHeight: '100%',
-                          maxWidth: '100%',
-                          width: 'auto',
-                          height: 'auto',
-                          objectFit: 'contain',
-                          transform: `translate(${position.x}px, ${position.y}px) scale(${zoomLevel})`,
-                          transformOrigin: 'center center',
-                          cursor: zoomLevel > 1
-                            ? isDragging ? 'grabbing' : 'grab'
-                            : 'default',
-                          transition: isDragging
-                            ? 'none'
-                            : 'transform 0.15s ease-out',
-                        }}
-                      />
-                    </div>
-
-                    <div className="bg-dark d-flex flex-wrap justify-content-between align-items-center gap-2 p-2 flex-shrink-0">
-                      <div className="btn-group btn-group-sm">
-                        <button className="btn btn-outline-light" onClick={this.zoomIn}>
-                          ➕ Zoom In
-                        </button>
-                        <button className="btn btn-outline-light" onClick={this.zoomOut}>
-                          ➖ Zoom Out
-                        </button>
-                        <button className="btn btn-outline-secondary" onClick={this.resetZoom}>
-                          Reset ({Math.round(zoomLevel * 100)}%)
-                        </button>
-                      </div>
-
-                      <div className="btn-group btn-group-sm ms-auto">
-                        <button className="btn btn-primary" onClick={this.prevGalleryImage}>
-                          ⬅ Prev
-                        </button>
-                        <button className="btn btn-primary" onClick={this.nextGalleryImage}>
-                          Next ➡
-                        </button>
+                      <img src={img.src} alt={img.alt} className="card-img-top" style={{ height: '150px', objectFit: 'cover' }} />
+                      <div className="card-body p-2">
+                        <h6 className="card-title text-truncate mb-1">{img.title}</h6>
                       </div>
                     </div>
                   </div>
-                );
-              })()}
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Game */}
+          {/* Tic-Tac-Toe Tab */}
           {activeTab === 'game' && (
-            <div className="text-center py-2">
-              <h3 className="mb-3">Tic-Tac-Toe: Five by Five</h3>
-              <p className="text-muted small">
-                Get four Xs or Os in a row horizontally, vertically, or diagonally to win.
+            <div className="py-3 text-center">
+              <h1 className="h3 fw-bold mb-3">5x5 Tic-Tac-Toe</h1>
+              <div className="mb-3 d-flex justify-content-center gap-4">
+                <span className="badge bg-primary fs-6">Score X: {scoreX}</span>
+                <span className="badge bg-danger fs-6">Score O: {scoreO}</span>
+              </div>
+              <p className="fw-semibold">
+                {winner ? `Winner: ${winner}` : gameHasEnded ? "It's a Draw!" : `Current Turn: ${xIsNext ? 'X' : 'O'}`}
               </p>
-
-              <div className="card mx-auto mb-3 p-2 shadow-sm" style={{ maxWidth: '380px' }}>
-                <h6 className="card-title text-muted mb-2">Scoreboard</h6>
-                <div className="d-flex justify-content-around align-items-center fs-5 fw-bold">
-                  <div className="text-primary">
-                    Player X: <span className="badge bg-primary">{scoreX}</span>
-                  </div>
-                  <div className="text-danger">
-                    Player O: <span className="badge bg-danger">{scoreO}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mb-3 fs-6">
-                {winner ? (
-                  <div className="alert alert-success py-2 px-3">
-                    🎉 Winner: <strong>Player {winner}</strong>
-                  </div>
-                ) : isBoardFull ? (
-                  <div className="alert alert-warning py-2 px-3">It's a Draw!</div>
-                ) : (
-                  <div>
-                    Next Turn: <strong>Player {xIsNext ? 'X' : 'O'}</strong>
-                  </div>
-                )}
-              </div>
 
               <div
-                className="d-grid mx-auto mb-4"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-                  gap: '6px',
-                  width: '100%',
-                  maxWidth: '380px',
-                }}
+                className="d-grid gap-1 mx-auto my-3"
+                style={{ gridTemplateColumns: 'repeat(5, 50px)', maxWidth: '270px' }}
               >
-                {board.map((value, idx) => (
+                {board.map((cell, idx) => (
                   <button
                     key={idx}
-                    type="button"
-                    className="btn btn-outline-dark fw-bold rounded shadow-sm d-flex align-items-center justify-content-center"
-                    style={{
-                      aspectRatio: '1 / 1',
-                      padding: 0,
-                      fontSize: 'clamp(1.1rem, 5vw, 2rem)',
-                    }}
+                    className="btn btn-outline-dark fs-5 fw-bold p-0"
+                    style={{ height: '50px' }}
                     onClick={() => this.handleSquareClick(idx)}
-                    disabled={Boolean(value) || this.state.gameHasEnded}
-                    aria-label={`Square ${idx + 1}${value ? `, ${value}` : ', empty'}`}
                   >
-                    {value}
+                    {cell}
                   </button>
                 ))}
               </div>
 
-              <div className="d-flex justify-content-center gap-2">
-                <button className="btn btn-secondary btn-sm px-3" onClick={this.resetGame}>
-                  Next Round
-                </button>
-                <button className="btn btn-outline-danger btn-sm px-3" onClick={this.resetScores}>
-                  Reset Scores
-                </button>
+              <div className="d-flex justify-content-center gap-2 mt-3">
+                <button className="btn btn-secondary btn-sm" onClick={this.resetGame}>Restart Game</button>
+                <button className="btn btn-outline-danger btn-sm" onClick={this.resetScores}>Reset Scores</button>
               </div>
             </div>
           )}
 
-          {/* About */}
+          {/* About Tab */}
           {activeTab === 'about' && (
             <div className="py-3">
-              <h3 className="mb-3 text-center">About This App</h3>
-
-              <div className="card shadow-sm p-4 bg-white rounded">
-                <p>
-                  This React TypeScript application uses Bootstrap and includes a
-                  task tracker, responsive image gallery, music player, live clock,
-                  and two-player five-by-five Tic-Tac-Toe.
-                </p>
-
-                <h5 className="mt-3">Features Included:</h5>
-                <ul>
-                  <li><strong>Navigation:</strong> URL paths for Home, Tasks, Gallery, Tic-Tac-Toe, and About.</li>
-                  <li><strong>Live Time:</strong> Real-time clock updating every second.</li>
-                  <li><strong>Task Tracker:</strong> Add, edit, complete, delete, and bulk-delete tasks.</li>
-                  <li><strong>Photo Gallery:</strong> 26 images with custom titles and descriptions, individual hide/show controls, zoom, pan, navigation, and fullscreen viewing.</li>
-                  <li><strong>Music Player:</strong> Play/pause, volume, and track selection.</li>
-                  <li><strong>Tic-Tac-Toe:</strong> 5×5 board where four connected squares win, with score tracking and round resets.</li>
-                </ul>
-              </div>
+              <h1 className="h3 fw-bold mb-3">About</h1>
+              <p className="text-secondary">This React portfolio and showcase application was built to demonstrate state management, responsive UI, custom events, and interactivity.</p>
             </div>
           )}
         </main>
+
+        {/* Gallery Modal with Mouse Scroll Zoom & Arrow Key Support */}
+        {selectedImgIndex !== null && (
+          <div
+            ref={this.modalContainerRef}
+            className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-90 d-flex flex-column justify-content-center align-items-center z-3"
+            onWheel={this.handleWheelZoom}
+            onMouseMove={this.handleMouseMove}
+            onMouseUp={this.handleMouseUp}
+          >
+            <div className="position-absolute top-0 end-0 p-3 d-flex gap-2">
+              <button className="btn btn-outline-light btn-sm" onClick={this.zoomIn}>Zoom +</button>
+              <button className="btn btn-outline-light btn-sm" onClick={this.zoomOut}>Zoom -</button>
+              <button className="btn btn-outline-light btn-sm" onClick={this.resetZoom}>Reset</button>
+              <button className="btn btn-outline-light btn-sm" onClick={this.toggleFullScreen}>Full Screen</button>
+              <button className="btn btn-light btn-sm" onClick={this.closeGalleryModal}>✕ Close</button>
+            </div>
+
+            <div className="position-absolute top-50 start-0 translate-middle-y px-3">
+              <button className="btn btn-dark btn-lg opacity-75 text-white" onClick={this.prevGalleryImage}>❮</button>
+            </div>
+            <div className="position-absolute top-50 end-0 translate-middle-y px-3">
+              <button className="btn btn-dark btn-lg opacity-75 text-white" onClick={this.nextGalleryImage}>❯</button>
+            </div>
+
+            <div className="overflow-hidden text-center" style={{ maxWidth: '85vw', maxHeight: '75vh' }}>
+              <img
+                src={this.galleryImages[selectedImgIndex].src}
+                alt={this.galleryImages[selectedImgIndex].alt}
+                className="img-fluid"
+                style={{
+                  transform: `scale(${zoomLevel}) translate(${position.x / zoomLevel}px, ${position.y / zoomLevel}px)`,
+                  cursor: zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
+                  maxHeight: '75vh',
+                  objectFit: 'contain',
+                }}
+                onMouseDown={this.handleMouseDown}
+              />
+              <div className="text-white mt-3">
+                <h5>{this.galleryImages[selectedImgIndex].title}</h5>
+                <p className="small text-white-50">{this.galleryImages[selectedImgIndex].description}</p>
+                <small className="text-muted">Use ⬅️ ➡️ arrow keys or buttons to navigate. Scroll wheel to zoom.</small>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
