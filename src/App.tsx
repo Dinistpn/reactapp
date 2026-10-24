@@ -491,6 +491,7 @@ class App extends Component<{}, AppState> {
     }
   };
 
+
   prevGalleryImage = () => {
     this.setState((prev) => {
       if (prev.selectedImgIndex === null) return null;
@@ -651,6 +652,17 @@ class App extends Component<{}, AppState> {
       }
     });
   };
+
+// Add the keyboard event listener
+window.addEventListener("keydown", (event) => {
+  // Optional: prevent default scrolling behavior for arrow keys
+  if (event.key === "ArrowLeft") {
+    prevGalleryImage();
+  } else if (event.key === "ArrowRight") {
+    nextGalleryImage();
+  }
+});
+
 
   // 5x5 Tic-Tac-Toe
   handleSquareClick = (index: number) => {
